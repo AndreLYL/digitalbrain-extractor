@@ -110,7 +110,8 @@ export async function runPipeline(
     const newOrModifiedMessages: RawMessage[] = [];
 
     try {
-      for await (const msg of opts.source.fetch({ cursor, limit: opts.limit })) {
+      let accepted = 0;
+      for await (const msg of opts.source.fetch({ cursor })) {
         result.totalMessages++;
 
         // Apply since filter
@@ -120,6 +121,12 @@ export async function runPipeline(
           if (msgTime < sinceTime) {
             continue;
           }
+        }
+
+        // Enforce limit after since filter
+        accepted++;
+        if (opts.limit && accepted > opts.limit) {
+          break;
         }
 
         // Dedup check

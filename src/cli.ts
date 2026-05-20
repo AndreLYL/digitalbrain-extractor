@@ -7,7 +7,7 @@ import { ensureStateDir, statePath } from "./core/state.js";
 import { runPipeline, PipelineConfig } from "./core/pipeline.js";
 import { ClaudeCodeCollector } from "./collectors/agent/claude-code.js";
 import type { Collector } from "./core/types.js";
-import { createOpenAIProvider, createMockProvider } from "./extractors/providers/index.js";
+import { createLLMProvider, createMockProvider } from "./extractors/providers/index.js";
 
 const program = new Command();
 
@@ -27,7 +27,7 @@ program
   .option("-f, --format <type>", "Output format (json|markdown)", "json")
   .option("-a, --adapter <type>", "Output adapter (file|gbrain|stdout)", "stdout")
   .option("-o, --output <dir>", "Output directory for file adapter")
-  .option("--since <date>", "Only process messages since this ISO 8601 date")
+  .option("--since <date>", "Only process messages since date (ISO 8601 or relative: 1d, 2h, 30m)")
   .option("--limit <n>", "Limit number of messages to process", undefined)
   .option("--dry-run", "Do not write outputs, only test pipeline")
   .action(async (options) => {
@@ -48,23 +48,18 @@ program
       }
 
       // Create LLM provider based on config
-      let provider: ReturnType<typeof createOpenAIProvider> | ReturnType<typeof createMockProvider> | undefined;
+      let provider: ReturnType<typeof createLLMProvider> | undefined;
       if (!options.dryRun) {
         const llmConfig = config.llm;
-        if (llmConfig.provider === "openai") {
-          provider = createOpenAIProvider({
-            apiKey: llmConfig.api_key || process.env.OPENAI_API_KEY,
-            model: llmConfig.model,
-            baseUrl: llmConfig.base_url,
-          });
-        } else if (llmConfig.provider === "mock") {
-          provider = createMockProvider(new Map());
-        } else {
-          console.error(`Error: Unknown LLM provider '${llmConfig.provider}'`);
+        if (!llmConfig.api_key && !process.env.OPENAI_API_KEY) {
+          console.error("Error: No API key configured. Set api_key in dbe.yaml or OPENAI_API_KEY env var.");
           process.exit(1);
         }
+        if (!llmConfig.api_key) {
+          llmConfig.api_key = process.env.OPENAI_API_KEY;
+        }
+        provider = createLLMProvider(llmConfig);
       } else {
-        // Use mock provider for dry-run
         provider = createMockProvider(new Map());
       }
 
@@ -88,7 +83,19 @@ program
       console.log(`Extracting from source: ${options.source}`);
       console.log(`Format: ${format}, Adapter: ${adapter}`);
       if (options.dryRun) console.log("DRY-RUN mode enabled");
-      if (options.since) console.log(`Since: ${options.since}`);
+      // Parse relative since values
+      let sinceValue = options.since;
+      if (sinceValue) {
+        const relMatch = sinceValue.match(/^(\d+)([dhm])$/);
+        if (relMatch) {
+          const amount = parseInt(relMatch[1]);
+          const unit = relMatch[2];
+          const ms = unit === 'd' ? amount * 86400000 : unit === 'h' ? amount * 3600000 : amount * 60000;
+          sinceValue = new Date(Date.now() - ms).toISOString();
+        }
+      }
+
+      if (sinceValue) console.log(`Since: ${sinceValue}`);
       if (limit) console.log(`Limit: ${limit} messages`);
       console.log("");
 
@@ -98,7 +105,7 @@ program
         format: format as "json" | "markdown",
         adapter: adapter as "file" | "gbrain" | "stdout",
         dryRun: options.dryRun || false,
-        since: options.since,
+        since: sinceValue,
         limit,
       });
 

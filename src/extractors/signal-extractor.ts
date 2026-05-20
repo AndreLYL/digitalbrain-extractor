@@ -18,6 +18,42 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function extractJson(raw: string): string | null {
+  // Strip leading/trailing whitespace and code fences
+  let s = raw.trim();
+  // Remove leading ```json or ``` (any number of backticks)
+  s = s.replace(/^`{3,}(?:json|JSON)?\s*\n?/, '');
+  // Remove trailing ```
+  s = s.replace(/\n?\s*`{3,}\s*$/, '');
+  s = s.trim();
+
+  // Try direct parse first
+  try { JSON.parse(s); return s; } catch {}
+
+  // Find the outermost { ... } or [ ... ] via bracket matching
+  const firstBrace = s.indexOf('{');
+  const firstBracket = s.indexOf('[');
+  const start = firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket) ? firstBrace : firstBracket;
+  if (start < 0) return null;
+
+  const open = s[start];
+  const close = open === '{' ? '}' : ']';
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === open) depth++;
+    if (ch === close) { depth--; if (depth === 0) return s.slice(start, i + 1); }
+  }
+  return null;
+}
+
 /**
  * Signal Extractor interface
  */
@@ -108,16 +144,27 @@ Output ONLY valid JSON matching ExtractionResultSchema.`;
           const response = await provider.chat(messages, {
             responseFormat: 'json',
             temperature: 0.2,
-            maxTokens: 4000,
+            maxTokens: 8000,
           });
 
           // Parse and validate JSON
           let jsonData: unknown;
           try {
             jsonData = JSON.parse(response);
-          } catch (err) {
-            lastError = `JSON parse error: ${err instanceof Error ? err.message : String(err)}`;
-            continue; // Retry
+          } catch {
+            // Try harder: extract JSON from markdown/text wrapping
+            const cleaned = extractJson(response);
+            if (cleaned) {
+              try {
+                jsonData = JSON.parse(cleaned);
+              } catch (err2) {
+                lastError = `JSON parse error after cleanup: ${err2 instanceof Error ? err2.message : String(err2)}. Cleaned content starts: ${cleaned.substring(0, 100)}`;
+                continue;
+              }
+            } else {
+              lastError = `No valid JSON found in response (len=${response.length}, starts: ${response.substring(0, 80)}...)`;
+              continue;
+            }
           }
 
           // Validate with Zod

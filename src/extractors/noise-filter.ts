@@ -162,7 +162,16 @@ async function filterL2(
   );
 
   // Parse and validate response
-  const parsed = JSON.parse(response);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(response);
+  } catch {
+    // Try extracting JSON from markdown wrapping
+    let s = response.trim();
+    s = s.replace(/^`{3,}(?:json|JSON)?\s*\n?/, '');
+    s = s.replace(/\n?\s*`{3,}\s*$/, '');
+    parsed = JSON.parse(s.trim());
+  }
   const verdict = SignificanceVerdictSchema.parse(parsed);
 
   // Apply filtering rules

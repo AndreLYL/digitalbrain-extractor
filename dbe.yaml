@@ -15,10 +15,10 @@ privacy:
 
 # LLM provider configuration
 llm:
-  provider: openai
-  model: gpt-4o-mini
-  # base_url: https://api.openai.com  # Optional, for custom endpoints
-  # api_key: <your-api-key>  # Or set OPENAI_API_KEY env var
+  provider: anthropic
+  model: claude-haiku-4.5
+  base_url: https://anthropic.southeastasia.cloudapp.azure.com
+  api_key: ${DBE_API_KEY}
 
 # Block builder configuration
 block_builder:

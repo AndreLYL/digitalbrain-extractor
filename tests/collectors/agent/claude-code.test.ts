@@ -142,12 +142,12 @@ describe('ClaudeCodeCollector', () => {
     expect(metadata?.sessionId).toBeUndefined();
   });
 
-  it('should handle assistant messages with different content formats', async () => {
+  it('should skip assistant messages with only tool_use content', async () => {
     const projectDir = path.join(tempDir, 'test-project');
     await fs.mkdir(projectDir, { recursive: true });
 
     const sessionFile = path.join(projectDir, 'session-test.jsonl');
-    // Assistant message with array content (tool_use)
+    // Assistant message with array content (tool_use only, no text blocks)
     await fs.writeFile(
       sessionFile,
       '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool-1","name":"Read","input":{"file_path":"/test.ts"}}]},"uuid":"test-uuid","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"test-session"}\n'
@@ -158,9 +158,7 @@ describe('ClaudeCodeCollector', () => {
       messages.push(msg);
     }
 
-    expect(messages.length).toBe(1);
-    expect(messages[0].content).toContain('tool_use');
-    expect(messages[0].content).toContain('Read');
+    expect(messages.length).toBe(0);
   });
 
   it('should yield empty when no JSONL files found', async () => {

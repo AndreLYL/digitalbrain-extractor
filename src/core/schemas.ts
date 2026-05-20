@@ -12,15 +12,15 @@ export const SignalConfidenceSchema = z.enum(['direct', 'paraphrased', 'inferred
 export const SourceRefSchema = z.object({
   platform: z.string(),
   channel: z.string(),
-  timestamp: z.string(), // ISO 8601
+  timestamp: z.string(),
   message_id: z.string().optional(),
   thread_id: z.string().optional(),
   file_path: z.string().optional(),
   line_range: z.object({ start: z.number(), end: z.number() }).optional(),
   attachment_id: z.string().optional(),
   url: z.string().optional(),
-  raw_hash: z.string(),
-  quote: z.string(),
+  raw_hash: z.string().default(''),
+  quote: z.string().default(''),
 });
 
 // Signal schemas
@@ -73,7 +73,7 @@ export const DecisionSchema = z.object({
 export const TaskSignalSchema = z.object({
   title: z.string(),
   status: z.enum(['open', 'in_progress', 'done', 'cancelled']),
-  owner: z.string().optional(),
+  owner: z.string().nullable().optional(),
   project: z.string().optional(),
   due_date: z.string().optional(), // ISO 8601
   valid_at: z.string().optional(), // ISO 8601

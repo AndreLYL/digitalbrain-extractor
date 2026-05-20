@@ -178,8 +178,11 @@ export class ClaudeCodeCollector implements Collector {
     if (typeof content === 'string') {
       textContent = content;
     } else if (Array.isArray(content)) {
-      // Handle array content (e.g., tool_use, thinking blocks)
-      textContent = JSON.stringify(content, null, 2);
+      textContent = content
+        .filter((block) => block.type === 'text' && block.text)
+        .map((block) => block.text!)
+        .join('\n\n');
+      if (!textContent.trim()) return null;
     } else {
       return null;
     }

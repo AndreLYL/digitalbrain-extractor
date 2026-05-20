@@ -109,14 +109,12 @@ describe('ExtractionResult schema validation', () => {
     expect(result).toEqual(validData);
   });
 
-  it('should throw ZodError with field name when required field is missing', () => {
-    const invalidData = {
+  it('should default raw_hash and quote when missing', () => {
+    const data = {
       source: {
         platform: 'slack',
         channel: '#engineering',
         timestamp: '2026-05-19T12:00:00Z',
-        // missing raw_hash
-        quote: 'test',
       },
       entities: [],
       timeline: [],
@@ -126,7 +124,9 @@ describe('ExtractionResult schema validation', () => {
       discoveries: [],
     };
 
-    expect(() => parseExtractionResult(invalidData)).toThrow(/raw_hash.*Required/);
+    const result = parseExtractionResult(data);
+    expect(result.source.raw_hash).toBe('');
+    expect(result.source.quote).toBe('');
   });
 
   it('should throw ZodError when confidence value is invalid', () => {
