@@ -1,7 +1,7 @@
 // src/collectors/agent/collector.ts
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { Glob } from 'bun';
+import fg from 'fast-glob';
 import type { Collector, FetchOpts, RawMessage } from '../../core/types';
 import type { SessionParser, SessionLayout, SessionMeta, SessionParseContext } from './types';
 
@@ -110,15 +110,15 @@ export class AgentSessionCollector implements Collector {
   }
 
   private async discoverFiles(): Promise<string[]> {
-    const results: string[] = [];
     try {
-      const glob = new Glob(this.layout.glob);
-      for await (const match of glob.scan({ cwd: this.layout.baseDir, absolute: true })) {
-        results.push(match);
-      }
+      return await fg(this.layout.glob, {
+        cwd: this.layout.baseDir,
+        absolute: true,
+        onlyFiles: true,
+      });
     } catch {
       // baseDir doesn't exist or not readable
+      return [];
     }
-    return results;
   }
 }
