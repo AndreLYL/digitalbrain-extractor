@@ -1,4 +1,4 @@
-import type { Collector } from '../core/types';
+import type { Collector } from "../core/types";
 
 const collectors = new Map<string, Collector>();
 
@@ -18,6 +18,6 @@ export function resetRegistry(): void {
   collectors.clear();
 }
 
-export { createClaudeCodeCollector } from './agent/claude-code';
-export { createCodexCollector } from './agent/codex';
-export { createHermesCollector } from './agent/hermes';
+export { createClaudeCodeCollector } from "./agent/claude-code";
+export { createCodexCollector } from "./agent/codex";
+export { createHermesCollector } from "./agent/hermes";

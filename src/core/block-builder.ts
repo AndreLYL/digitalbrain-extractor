@@ -1,4 +1,4 @@
-import type { RawMessage, ConversationBlock } from './types';
+import type { ConversationBlock, RawMessage } from "./types";
 
 export interface BlockBuilderConfig {
   block_gap_minutes?: number;
@@ -20,7 +20,7 @@ export class BlockBuilder {
   async *build(messages: AsyncGenerator<RawMessage>): AsyncGenerator<ConversationBlock> {
     let currentBlock: RawMessage[] = [];
     let currentTokens = 0;
-    let currentThreadId: string | undefined = undefined;
+    let currentThreadId: string | undefined;
     let lastTimestamp: Date | null = null;
 
     for await (const message of messages) {
@@ -44,7 +44,11 @@ export class BlockBuilder {
       }
 
       // Rule 3: Token budget
-      if (!shouldSplit && currentBlock.length > 0 && currentTokens + messageTokens > this.config.max_block_tokens) {
+      if (
+        !shouldSplit &&
+        currentBlock.length > 0 &&
+        currentTokens + messageTokens > this.config.max_block_tokens
+      ) {
         shouldSplit = true;
       }
 
@@ -78,7 +82,7 @@ export class BlockBuilder {
   private finalizeBlock(
     messages: RawMessage[],
     tokenCount: number,
-    threadId: string | undefined
+    threadId: string | undefined,
   ): ConversationBlock {
     const participants = Array.from(new Set(messages.map((m) => m.contact)));
     const startTime = messages[0].timestamp;
@@ -101,8 +105,8 @@ export class BlockBuilder {
 
   private estimateTokens(content: string): number {
     let tokens = 0;
-    let currentWord = '';
-    let isInEnglishWord = false;
+    let currentWord = "";
+    let _isInEnglishWord = false;
 
     for (let i = 0; i < content.length; i++) {
       const char = content[i];
@@ -123,8 +127,8 @@ export class BlockBuilder {
         // Finish current English word if any
         if (currentWord.length > 0) {
           tokens += 1.3; // English word
-          currentWord = '';
-          isInEnglishWord = false;
+          currentWord = "";
+          _isInEnglishWord = false;
         }
         // Chinese character
         tokens += 1.5;
@@ -132,13 +136,13 @@ export class BlockBuilder {
         // Whitespace - finish current word
         if (currentWord.length > 0) {
           tokens += 1.3;
-          currentWord = '';
-          isInEnglishWord = false;
+          currentWord = "";
+          _isInEnglishWord = false;
         }
       } else {
         // Regular character (English, punctuation, etc.)
         currentWord += char;
-        isInEnglishWord = true;
+        _isInEnglishWord = true;
       }
     }
 

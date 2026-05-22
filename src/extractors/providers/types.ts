@@ -7,7 +7,7 @@
  * Chat message in the OpenAI format
  */
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -17,7 +17,7 @@ export interface ChatMessage {
 export interface LLMOpts {
   temperature?: number;
   maxTokens?: number;
-  responseFormat?: 'json' | 'text';
+  responseFormat?: "json" | "text";
 }
 
 /**

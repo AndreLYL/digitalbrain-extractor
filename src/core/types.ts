@@ -16,7 +16,7 @@ export interface RawMessage {
   contact: string;
   timestamp: string; // ISO 8601
   content: string;
-  direction: 'sent' | 'received';
+  direction: "sent" | "received";
   metadata?: Record<string, unknown>;
   attachments?: Attachment[];
 }
@@ -53,12 +53,12 @@ export interface SourceRef {
   quote: string;
 }
 
-export type SignalConfidence = 'direct' | 'paraphrased' | 'inferred' | 'speculative';
+export type SignalConfidence = "direct" | "paraphrased" | "inferred" | "speculative";
 
 export interface Entity {
   slug: string;
   name: string;
-  type: 'person' | 'project' | 'organization' | 'tool' | 'concept';
+  type: "person" | "project" | "organization" | "tool" | "concept";
   context: string;
   confidence: SignalConfidence;
 }
@@ -72,13 +72,13 @@ export interface TimelineEntry {
 }
 
 export type LinkType =
-  | 'works_on'
-  | 'works_at'
-  | 'reports_to'
-  | 'collaborates'
-  | 'depends_on'
-  | 'mentions'
-  | 'custom';
+  | "works_on"
+  | "works_at"
+  | "reports_to"
+  | "collaborates"
+  | "depends_on"
+  | "mentions"
+  | "custom";
 
 export interface Link {
   from: string; // entity slug
@@ -102,7 +102,7 @@ export interface Decision {
 
 export interface TaskSignal {
   title: string;
-  status: 'open' | 'in_progress' | 'done' | 'cancelled';
+  status: "open" | "in_progress" | "done" | "cancelled";
   owner?: string;
   project?: string;
   due_date?: string; // ISO 8601
@@ -115,7 +115,7 @@ export interface TaskSignal {
 export interface Discovery {
   summary: string;
   detail?: string;
-  type: 'procedure' | 'preference' | 'pattern' | 'insight';
+  type: "procedure" | "preference" | "pattern" | "insight";
   entities: string[]; // slugs
   source: SourceRef;
   confidence: SignalConfidence;
@@ -139,9 +139,9 @@ export interface SignificanceVerdict {
 }
 
 export type BlockResult =
-  | { status: 'ok'; data: ExtractionResult }
-  | { status: 'skipped'; reason: string }
-  | { status: 'failed'; error: string };
+  | { status: "ok"; data: ExtractionResult }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; error: string };
 
 export interface Collector {
   id: string;

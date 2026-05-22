@@ -3,8 +3,8 @@
  * Ensures .dbe/ directory exists and provides path utilities
  */
 
-import { mkdirSync } from 'fs';
-import { resolve } from 'path';
+import { mkdirSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Ensure state directory exists (creates .dbe/ in base directory)
@@ -15,7 +15,7 @@ import { resolve } from 'path';
  */
 export function ensureStateDir(base?: string): string {
   const baseDir = base || process.cwd();
-  const stateDir = resolve(baseDir, '.dbe');
+  const stateDir = resolve(baseDir, ".dbe");
 
   mkdirSync(stateDir, { recursive: true });
 
@@ -31,6 +31,6 @@ export function ensureStateDir(base?: string): string {
  * @returns Full path to the state file
  */
 export function statePath(filename: string): string {
-  const stateDir = resolve(process.cwd(), '.dbe');
+  const stateDir = resolve(process.cwd(), ".dbe");
   return resolve(stateDir, filename);
 }

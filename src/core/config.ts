@@ -4,16 +4,16 @@
  * and recursive merging with defaults
  */
 
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-import { parse } from 'yaml';
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parse } from "yaml";
 
 /**
  * Privacy configuration interface
  */
 export interface PrivacyConfig {
   enabled: boolean;
-  mode: 'reversible' | 'irreversible';
+  mode: "reversible" | "irreversible";
   redact_phone: boolean;
   redact_id_card: boolean;
   redact_bank_card: boolean;
@@ -72,7 +72,7 @@ export interface SourceConfig {
  * Sources configuration interface
  */
 export interface SourcesConfig {
-  'claude-code'?: SourceConfig;
+  "claude-code"?: SourceConfig;
   codex?: SourceConfig;
   hermes?: SourceConfig;
 }
@@ -94,18 +94,18 @@ export interface Config {
 const DEFAULT_CONFIG: Config = {
   privacy: {
     enabled: true,
-    mode: 'reversible',
+    mode: "reversible",
     redact_phone: true,
     redact_id_card: true,
     redact_bank_card: true,
     redact_email: false,
     redact_url: false,
     blocked_words: [],
-    replacement: '[REDACTED]',
+    replacement: "[REDACTED]",
   },
   llm: {
-    provider: 'openai',
-    model: 'gpt-4o-mini',
+    provider: "openai",
+    model: "gpt-4o-mini",
   },
   block_builder: {
     block_gap_minutes: 30,
@@ -114,7 +114,7 @@ const DEFAULT_CONFIG: Config = {
   },
   adapters: {},
   sources: {
-    'claude-code': { enabled: true },
+    "claude-code": { enabled: true },
     codex: { enabled: true },
     hermes: { enabled: true },
   },
@@ -129,10 +129,10 @@ const DEFAULT_CONFIG: Config = {
  * @returns Object with interpolated values
  */
 function interpolateEnv(obj: unknown): unknown {
-  if (typeof obj === 'string') {
+  if (typeof obj === "string") {
     // Replace ${VAR_NAME} with process.env.VAR_NAME
-    return obj.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, varName) => {
-      return process.env[varName] ?? '';
+    return obj.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_match, varName) => {
+      return process.env[varName] ?? "";
     });
   }
 
@@ -140,7 +140,7 @@ function interpolateEnv(obj: unknown): unknown {
     return obj.map((item) => interpolateEnv(item));
   }
 
-  if (obj !== null && typeof obj === 'object') {
+  if (obj !== null && typeof obj === "object") {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       result[key] = interpolateEnv(value);
@@ -159,7 +159,10 @@ function interpolateEnv(obj: unknown): unknown {
  * @param user - User-provided configuration
  * @returns Merged configuration
  */
-function mergeConfig(defaults: Record<string, any>, user: Record<string, any>): Record<string, any> {
+function mergeConfig(
+  defaults: Record<string, unknown>,
+  user: Record<string, unknown>,
+): Record<string, unknown> {
   const result = { ...defaults };
 
   for (const key in user) {
@@ -169,10 +172,10 @@ function mergeConfig(defaults: Record<string, any>, user: Record<string, any>): 
     // If user value is an object and default exists and is an object, merge recursively
     if (
       userValue !== null &&
-      typeof userValue === 'object' &&
+      typeof userValue === "object" &&
       !Array.isArray(userValue) &&
       defaultValue !== null &&
-      typeof defaultValue === 'object' &&
+      typeof defaultValue === "object" &&
       !Array.isArray(defaultValue)
     ) {
       result[key] = mergeConfig(defaultValue, userValue);
@@ -194,26 +197,26 @@ function mergeConfig(defaults: Record<string, any>, user: Record<string, any>): 
  * @throws Error if file cannot be read or parsed
  */
 export function loadConfig(filePath?: string): Config {
-  const configPath = filePath ? resolve(filePath) : resolve(process.cwd(), 'dbe.yaml');
+  const configPath = filePath ? resolve(filePath) : resolve(process.cwd(), "dbe.yaml");
 
-  let userConfig: Record<string, any> = {};
+  let userConfig: Record<string, unknown> = {};
 
   try {
-    const content = readFileSync(configPath, 'utf-8');
+    const content = readFileSync(configPath, "utf-8");
     const parsed = parse(content);
     userConfig = parsed || {};
   } catch (error) {
     // If file doesn't exist or can't be read, use empty config (will use defaults)
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       throw error;
     }
   }
 
   // Interpolate environment variables
-  userConfig = interpolateEnv(userConfig) as Record<string, any>;
+  userConfig = interpolateEnv(userConfig) as Record<string, unknown>;
 
   // Merge with defaults
-  const merged = mergeConfig(DEFAULT_CONFIG as unknown as Record<string, any>, userConfig);
+  const merged = mergeConfig(DEFAULT_CONFIG as unknown as Record<string, unknown>, userConfig);
 
   return merged as Config;
 }

@@ -3,8 +3,8 @@
  * Stores continuation tokens for incremental collection
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { parse, stringify } from 'yaml';
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { parse, stringify } from "yaml";
 
 export class CursorStore {
   private cursors: Map<string, string>; // collectorId → cursor value
@@ -23,12 +23,12 @@ export class CursorStore {
     }
 
     try {
-      const content = readFileSync(this.cursorPath, 'utf-8');
+      const content = readFileSync(this.cursorPath, "utf-8");
       const data = parse(content) as Record<string, string> | null;
 
-      if (data && typeof data === 'object') {
+      if (data && typeof data === "object") {
         for (const [key, value] of Object.entries(data)) {
-          if (typeof value === 'string') {
+          if (typeof value === "string") {
             this.cursors.set(key, value);
           }
         }
@@ -68,7 +68,7 @@ export class CursorStore {
     }
 
     const yaml = stringify(data);
-    writeFileSync(this.cursorPath, yaml, 'utf-8');
+    writeFileSync(this.cursorPath, yaml, "utf-8");
     this.dirty = false;
   }
 }

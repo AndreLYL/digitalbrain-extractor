@@ -3,7 +3,7 @@
  * Returns predefined responses based on prompt matching
  */
 
-import { ChatMessage, LLMOpts, LLMProvider } from './types';
+import type { ChatMessage, LLMOpts, LLMProvider } from "./types";
 
 /**
  * Create a mock LLM provider that returns predefined responses
@@ -12,15 +12,13 @@ import { ChatMessage, LLMOpts, LLMProvider } from './types';
  * @param responses - Map of prompt patterns to responses (matched case-insensitively)
  * @returns Mock LLM provider
  */
-export function createMockProvider(
-  responses: Map<string, string>
-): LLMProvider {
+export function createMockProvider(responses: Map<string, string>): LLMProvider {
   return {
     async chat(messages: ChatMessage[], _opts?: LLMOpts): Promise<string> {
       // Concatenate all message content to form the prompt
       const prompt = messages
         .map((msg) => msg.content)
-        .join(' ')
+        .join(" ")
         .toLowerCase();
 
       // Try to find a matching response
@@ -33,7 +31,7 @@ export function createMockProvider(
 
       // Try partial matches (pattern contained in prompt)
       for (const [pattern, response] of responses.entries()) {
-        if (pattern === '' || prompt.includes(pattern.toLowerCase())) {
+        if (pattern === "" || prompt.includes(pattern.toLowerCase())) {
           return response;
         }
       }

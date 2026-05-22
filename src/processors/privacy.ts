@@ -3,18 +3,18 @@
  * Redacts sensitive data in ExtractionResult with configurable L1/L2/L3 patterns
  */
 
-import { appendFileSync, existsSync } from 'fs';
+import { appendFileSync } from "node:fs";
+import type { PrivacyConfig } from "../core/config.js";
+import { ensureStateDir, statePath } from "../core/state.js";
 import type {
-  ExtractionResult,
-  Entity,
   Decision,
-  TaskSignal,
-  Link,
   Discovery,
+  Entity,
+  ExtractionResult,
+  Link,
   SourceRef,
-} from '../core/types.js';
-import type { PrivacyConfig } from '../core/config.js';
-import { statePath, ensureStateDir } from '../core/state.js';
+  TaskSignal,
+} from "../core/types.js";
 
 /**
  * Redaction entry for reversible mode
@@ -75,7 +75,7 @@ export class PrivacyProcessor {
       entities: result.entities.map((e) => this.processEntity(e)),
       timeline: result.timeline.map((t) => ({
         ...t,
-        summary: this.redactText(t.summary, 'timeline.summary'),
+        summary: this.redactText(t.summary, "timeline.summary"),
         source: this.processSourceRef(t.source),
       })),
       links: result.links.map((l) => this.processLink(l)),
@@ -85,7 +85,7 @@ export class PrivacyProcessor {
     };
 
     // Write redaction map if in reversible mode
-    if (this.config.mode === 'reversible' && this.redactionMap.length > 0) {
+    if (this.config.mode === "reversible" && this.redactionMap.length > 0) {
       this.writeRedactionMap();
     }
 
@@ -98,8 +98,8 @@ export class PrivacyProcessor {
   private processSourceRef(source: SourceRef): SourceRef {
     return {
       ...source,
-      quote: this.redactText(source.quote, 'sourceRef.quote'),
-      url: source.url ? this.redactText(source.url, 'sourceRef.url') : source.url,
+      quote: this.redactText(source.quote, "sourceRef.quote"),
+      url: source.url ? this.redactText(source.url, "sourceRef.url") : source.url,
       // raw_hash is NEVER redacted
     };
   }
@@ -110,7 +110,7 @@ export class PrivacyProcessor {
   private processEntity(entity: Entity): Entity {
     return {
       ...entity,
-      context: this.redactText(entity.context, 'entity.context'),
+      context: this.redactText(entity.context, "entity.context"),
       // name and slug are NEVER redacted
     };
   }
@@ -121,9 +121,9 @@ export class PrivacyProcessor {
   private processDecision(decision: Decision): Decision {
     return {
       ...decision,
-      summary: this.redactText(decision.summary, 'decision.summary'),
+      summary: this.redactText(decision.summary, "decision.summary"),
       reasoning: decision.reasoning
-        ? this.redactText(decision.reasoning, 'decision.reasoning')
+        ? this.redactText(decision.reasoning, "decision.reasoning")
         : decision.reasoning,
       source: this.processSourceRef(decision.source),
     };
@@ -135,7 +135,7 @@ export class PrivacyProcessor {
   private processTask(task: TaskSignal): TaskSignal {
     return {
       ...task,
-      title: this.redactText(task.title, 'task.title'),
+      title: this.redactText(task.title, "task.title"),
       source: this.processSourceRef(task.source),
     };
   }
@@ -146,7 +146,7 @@ export class PrivacyProcessor {
   private processLink(link: Link): Link {
     return {
       ...link,
-      context: this.redactText(link.context, 'link.context'),
+      context: this.redactText(link.context, "link.context"),
     };
   }
 
@@ -156,9 +156,9 @@ export class PrivacyProcessor {
   private processDiscovery(discovery: Discovery): Discovery {
     return {
       ...discovery,
-      summary: this.redactText(discovery.summary, 'discovery.summary'),
+      summary: this.redactText(discovery.summary, "discovery.summary"),
       detail: discovery.detail
-        ? this.redactText(discovery.detail, 'discovery.detail')
+        ? this.redactText(discovery.detail, "discovery.detail")
         : discovery.detail,
       source: this.processSourceRef(discovery.source),
     };
@@ -170,39 +170,29 @@ export class PrivacyProcessor {
    */
   private redactText(text: string, fieldName: string): string {
     let result = text;
-    let positionOffset = 0;
+    const _positionOffset = 0;
 
     // L1 Patterns - Phone
     if (this.config.redact_phone) {
-      result = this.applyRedaction(
-        result,
-        this.phoneRegex,
-        '[REDACTED_PHONE]',
-        fieldName,
-      );
+      result = this.applyRedaction(result, this.phoneRegex, "[REDACTED_PHONE]", fieldName);
     }
 
     // L1 Patterns - ID Card
     if (this.config.redact_id_card) {
-      result = this.applyRedaction(result, this.idCardRegex, '[REDACTED_ID]', fieldName);
+      result = this.applyRedaction(result, this.idCardRegex, "[REDACTED_ID]", fieldName);
     }
 
     // L1 Patterns - Bank Card
     if (this.config.redact_bank_card) {
-      result = this.applyRedaction(
-        result,
-        this.bankCardRegex,
-        '[REDACTED_CARD]',
-        fieldName,
-      );
+      result = this.applyRedaction(result, this.bankCardRegex, "[REDACTED_CARD]", fieldName);
     }
 
     // L2 Patterns - IP Address (always applied)
-    result = this.applyRedaction(result, this.ipRegex, '[REDACTED_IP]', fieldName);
+    result = this.applyRedaction(result, this.ipRegex, "[REDACTED_IP]", fieldName);
 
     // L3 Patterns - Blocked Words (case-insensitive)
     for (const word of this.config.blocked_words) {
-      const regex = new RegExp(`\\b${this.escapeRegex(word)}\\b`, 'gi');
+      const regex = new RegExp(`\\b${this.escapeRegex(word)}\\b`, "gi");
       result = this.applyRedaction(result, regex, this.config.replacement, fieldName);
     }
 
@@ -219,11 +209,12 @@ export class PrivacyProcessor {
     replacement: string,
     fieldName: string,
   ): string {
-    let match;
+    let match: RegExpExecArray | null;
     const matches: Array<{ original: string; position: number }> = [];
 
     // Find all matches first on the original text
     const originalText = text;
+    // biome-ignore lint/suspicious/noAssignInExpressions: Standard pattern for regex.exec() iteration
     while ((match = regex.exec(originalText)) !== null) {
       matches.push({
         original: match[0],
@@ -242,7 +233,7 @@ export class PrivacyProcessor {
       text = before + replacement + after;
 
       // Track for reversible mode
-      if (this.config.mode === 'reversible') {
+      if (this.config.mode === "reversible") {
         this.redactionMap.push({
           field: fieldName,
           original: m.original,
@@ -259,7 +250,7 @@ export class PrivacyProcessor {
    * Escape special regex characters
    */
   private escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   /**
@@ -268,10 +259,10 @@ export class PrivacyProcessor {
   private writeRedactionMap(): void {
     try {
       ensureStateDir();
-      const mapPath = statePath('redaction_map.jsonl');
+      const mapPath = statePath("redaction_map.jsonl");
 
       for (const entry of this.redactionMap) {
-        appendFileSync(mapPath, JSON.stringify(entry) + '\n');
+        appendFileSync(mapPath, `${JSON.stringify(entry)}\n`);
       }
     } catch (error) {
       throw new Error(`Failed to write redaction map: ${error}`);

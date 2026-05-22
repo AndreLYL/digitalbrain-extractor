@@ -3,11 +3,11 @@
  * Corresponds to types in types.ts but with runtime validation
  */
 
-import { z } from 'zod';
-import type { ExtractionResult, SignificanceVerdict } from './types.js';
+import { z } from "zod";
+import type { ExtractionResult, SignificanceVerdict } from "./types.js";
 
 // Base schemas
-export const SignalConfidenceSchema = z.enum(['direct', 'paraphrased', 'inferred', 'speculative']);
+export const SignalConfidenceSchema = z.enum(["direct", "paraphrased", "inferred", "speculative"]);
 
 export const SourceRefSchema = z.object({
   platform: z.string(),
@@ -19,15 +19,15 @@ export const SourceRefSchema = z.object({
   line_range: z.object({ start: z.number(), end: z.number() }).optional(),
   attachment_id: z.string().optional(),
   url: z.string().optional(),
-  raw_hash: z.string().default(''),
-  quote: z.string().default(''),
+  raw_hash: z.string().default(""),
+  quote: z.string().default(""),
 });
 
 // Signal schemas
 export const EntitySchema = z.object({
   slug: z.string(),
   name: z.string(),
-  type: z.enum(['person', 'project', 'organization', 'tool', 'concept']),
+  type: z.enum(["person", "project", "organization", "tool", "concept"]),
   context: z.string(),
   confidence: SignalConfidenceSchema,
 });
@@ -41,13 +41,13 @@ export const TimelineEntrySchema = z.object({
 });
 
 export const LinkTypeSchema = z.enum([
-  'works_on',
-  'works_at',
-  'reports_to',
-  'collaborates',
-  'depends_on',
-  'mentions',
-  'custom',
+  "works_on",
+  "works_at",
+  "reports_to",
+  "collaborates",
+  "depends_on",
+  "mentions",
+  "custom",
 ]);
 
 export const LinkSchema = z.object({
@@ -72,7 +72,7 @@ export const DecisionSchema = z.object({
 
 export const TaskSignalSchema = z.object({
   title: z.string(),
-  status: z.enum(['open', 'in_progress', 'done', 'cancelled']),
+  status: z.enum(["open", "in_progress", "done", "cancelled"]),
   owner: z.string().nullable().optional(),
   project: z.string().optional(),
   due_date: z.string().optional(), // ISO 8601
@@ -85,7 +85,7 @@ export const TaskSignalSchema = z.object({
 export const DiscoverySchema = z.object({
   summary: z.string(),
   detail: z.string().optional(),
-  type: z.enum(['procedure', 'preference', 'pattern', 'insight']),
+  type: z.enum(["procedure", "preference", "pattern", "insight"]),
   entities: z.array(z.string()), // slugs
   source: SourceRefSchema,
   confidence: SignalConfidenceSchema,
@@ -123,13 +123,12 @@ export function parseExtractionResult(raw: unknown): ExtractionResult {
     if (error instanceof z.ZodError) {
       // Enhance error messages for better debugging
       const formattedErrors = error.errors.map((err) => {
-        const path = err.path.join('.');
+        const path = err.path.join(".");
         return `${path}: ${err.message}`;
       });
-      throw new Error(
-        `ExtractionResult validation failed:\n${formattedErrors.join('\n')}`,
-        { cause: error }
-      );
+      throw new Error(`ExtractionResult validation failed:\n${formattedErrors.join("\n")}`, {
+        cause: error,
+      });
     }
     throw error;
   }
@@ -147,13 +146,12 @@ export function parseSignificanceVerdict(raw: unknown): SignificanceVerdict {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const formattedErrors = error.errors.map((err) => {
-        const path = err.path.join('.');
+        const path = err.path.join(".");
         return `${path}: ${err.message}`;
       });
-      throw new Error(
-        `SignificanceVerdict validation failed:\n${formattedErrors.join('\n')}`,
-        { cause: error }
-      );
+      throw new Error(`SignificanceVerdict validation failed:\n${formattedErrors.join("\n")}`, {
+        cause: error,
+      });
     }
     throw error;
   }

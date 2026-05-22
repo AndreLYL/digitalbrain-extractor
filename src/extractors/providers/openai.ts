@@ -3,7 +3,7 @@
  * Uses fetch to call OpenAI API directly, supports custom base_url for proxies/local servers
  */
 
-import { ChatMessage, LLMOpts, LLMProvider } from './types';
+import type { ChatMessage, LLMOpts, LLMProvider } from "./types";
 
 interface OpenAIConfig {
   apiKey: string;
@@ -22,17 +22,14 @@ interface OpenAIConfig {
  * @returns OpenAI-compatible LLM provider
  */
 export function createOpenAIProvider(config: OpenAIConfig): LLMProvider {
-  const { apiKey, model, baseUrl = 'https://api.openai.com' } = config;
+  const { apiKey, model, baseUrl = "https://api.openai.com" } = config;
 
   return {
-    async chat(
-      messages: ChatMessage[],
-      opts?: LLMOpts
-    ): Promise<string> {
+    async chat(messages: ChatMessage[], opts?: LLMOpts): Promise<string> {
       const url = `${baseUrl}/v1/chat/completions`;
 
       // Build request body
-      const requestBody: Record<string, any> = {
+      const requestBody: Record<string, unknown> = {
         model,
         messages,
       };
@@ -46,21 +43,24 @@ export function createOpenAIProvider(config: OpenAIConfig): LLMProvider {
         requestBody.max_tokens = opts.maxTokens;
       }
 
-      if (opts?.responseFormat === 'json') {
-        requestBody.response_format = { type: 'json_object' };
+      if (opts?.responseFormat === "json") {
+        requestBody.response_format = { type: "json_object" };
       }
 
       // Make the API call
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(requestBody),
       });
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as {
+        error?: { message: string };
+        choices?: Array<{ message?: { content?: string } }>;
+      };
 
       // Check for API errors
       if (data.error) {
@@ -69,16 +69,16 @@ export function createOpenAIProvider(config: OpenAIConfig): LLMProvider {
 
       // Check for valid response structure
       if (!data.choices || data.choices.length === 0) {
-        throw new Error('API returned no choices in response');
+        throw new Error("API returned no choices in response");
       }
 
       const choice = data.choices[0];
       if (!choice.message) {
-        throw new Error('API response choice has no message');
+        throw new Error("API response choice has no message");
       }
 
-      let content = choice.message.content ?? '';
-      content = content.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+      let content = choice.message.content ?? "";
+      content = content.replace(/<think>[\s\S]*?<\/think>\s*/g, "").trim();
       return content;
     },
   };

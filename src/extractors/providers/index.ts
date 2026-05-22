@@ -3,19 +3,19 @@
  * Creates provider instances based on configuration
  */
 
-import { LLMConfig } from '../../../core/config';
-import { LLMProvider } from './types';
-import { createOpenAIProvider } from './openai';
-import { createAnthropicProvider } from './anthropic';
-import { createMockProvider } from './mock';
+import type { LLMConfig } from "../../../core/config";
+import { createAnthropicProvider } from "./anthropic";
+import { createMockProvider } from "./mock";
+import { createOpenAIProvider } from "./openai";
+import type { LLMProvider } from "./types";
 
 export function createLLMProvider(config: LLMConfig): LLMProvider {
   const { provider, model, api_key, base_url } = config;
 
   switch (provider) {
-    case 'openai': {
+    case "openai": {
       if (!api_key) {
-        throw new Error('OpenAI provider requires api_key in config');
+        throw new Error("OpenAI provider requires api_key in config");
       }
       return createOpenAIProvider({
         apiKey: api_key,
@@ -24,9 +24,9 @@ export function createLLMProvider(config: LLMConfig): LLMProvider {
       });
     }
 
-    case 'anthropic': {
+    case "anthropic": {
       if (!api_key) {
-        throw new Error('Anthropic provider requires api_key in config');
+        throw new Error("Anthropic provider requires api_key in config");
       }
       return createAnthropicProvider({
         apiKey: api_key,
@@ -35,18 +35,16 @@ export function createLLMProvider(config: LLMConfig): LLMProvider {
       });
     }
 
-    case 'mock': {
+    case "mock": {
       return createMockProvider(new Map());
     }
 
     default:
-      throw new Error(
-        `Unsupported LLM provider: ${provider}. Supported: openai, anthropic, mock`
-      );
+      throw new Error(`Unsupported LLM provider: ${provider}. Supported: openai, anthropic, mock`);
   }
 }
 
-export { createOpenAIProvider } from './openai';
-export { createAnthropicProvider } from './anthropic';
-export { createMockProvider } from './mock';
-export type { LLMProvider, ChatMessage, LLMOpts } from './types';
+export { createAnthropicProvider } from "./anthropic";
+export { createMockProvider } from "./mock";
+export { createOpenAIProvider } from "./openai";
+export type { ChatMessage, LLMOpts, LLMProvider } from "./types";

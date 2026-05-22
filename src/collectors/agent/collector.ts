@@ -1,9 +1,8 @@
 // src/collectors/agent/collector.ts
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import fg from 'fast-glob';
-import type { Collector, FetchOpts, RawMessage } from '../../core/types';
-import type { SessionParser, SessionLayout, SessionMeta, SessionParseContext } from './types';
+import * as fs from "node:fs/promises";
+import fg from "fast-glob";
+import type { Collector, FetchOpts, RawMessage } from "../../core/types";
+import type { SessionLayout, SessionMeta, SessionParseContext, SessionParser } from "./types";
 
 export class AgentSessionCollector implements Collector {
   readonly id: string;
@@ -29,7 +28,7 @@ export class AgentSessionCollector implements Collector {
     }
   }
 
-  async *fetch(opts: FetchOpts): AsyncGenerator<RawMessage> {
+  async *fetch(_opts: FetchOpts): AsyncGenerator<RawMessage> {
     const processedSessions = new Set<string>();
 
     const files = await this.discoverFiles();
@@ -57,8 +56,8 @@ export class AgentSessionCollector implements Collector {
       let sessionMeta: SessionMeta | null = null;
       let currentSessionId = sessionIdFromPath;
 
-      const content = await fs.readFile(file.path, 'utf-8');
-      const lines = content.split('\n');
+      const content = await fs.readFile(file.path, "utf-8");
+      const lines = content.split("\n");
 
       for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         const line = lines[lineIndex].trim();

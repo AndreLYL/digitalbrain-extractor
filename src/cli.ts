@@ -1,26 +1,25 @@
 #!/usr/bin/env bun
+import { existsSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { Command } from "commander";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { resolve } from "path";
-import { loadConfig, type SourcesConfig } from "./core/config.js";
-import { ensureStateDir, statePath } from "./core/state.js";
-import { runPipeline, PipelineConfig } from "./core/pipeline.js";
 import {
-  registerCollector,
-  getCollector,
-  getAllCollectors,
-  resetRegistry,
   createClaudeCodeCollector,
   createCodexCollector,
   createHermesCollector,
+  getAllCollectors,
+  getCollector,
+  registerCollector,
+  resetRegistry,
 } from "./collectors/index.js";
-import type { Collector } from "./core/types.js";
+import { loadConfig, type SourcesConfig } from "./core/config.js";
+import { type PipelineConfig, runPipeline } from "./core/pipeline.js";
+import { ensureStateDir, statePath } from "./core/state.js";
 import { createLLMProvider, createMockProvider } from "./extractors/providers/index.js";
 
 function bootstrapCollectors(sources: SourcesConfig): void {
   resetRegistry();
   const configs = {
-    'claude-code': { factory: createClaudeCodeCollector, config: sources['claude-code'] },
+    "claude-code": { factory: createClaudeCodeCollector, config: sources["claude-code"] },
     codex: { factory: createCodexCollector, config: sources.codex },
     hermes: { factory: createHermesCollector, config: sources.hermes },
   };
@@ -45,7 +44,11 @@ program
 program
   .command("extract")
   .description("Extract signals from a platform or source")
-  .option("-s, --source <name>", "Source/collector name (e.g., claude-code, codex, hermes, or 'all' for all enabled sources)", "claude-code")
+  .option(
+    "-s, --source <name>",
+    "Source/collector name (e.g., claude-code, codex, hermes, or 'all' for all enabled sources)",
+    "claude-code",
+  )
   .option("-c, --config <path>", "Path to config file (default: dbe.yaml)")
   .option("-f, --format <type>", "Output format (json|markdown)", "json")
   .option("-a, --adapter <type>", "Output adapter (file|gbrain|stdout)", "stdout")
@@ -66,8 +69,8 @@ program
 
       // Determine which sources to process
       let sourceIds: string[];
-      if (options.source === 'all') {
-        sourceIds = getAllCollectors().map(c => c.id);
+      if (options.source === "all") {
+        sourceIds = getAllCollectors().map((c) => c.id);
       } else {
         sourceIds = [options.source];
       }
@@ -77,7 +80,9 @@ program
       if (!options.dryRun) {
         const llmConfig = config.llm;
         if (!llmConfig.api_key && !process.env.OPENAI_API_KEY) {
-          console.error("Error: No API key configured. Set api_key in dbe.yaml or OPENAI_API_KEY env var.");
+          console.error(
+            "Error: No API key configured. Set api_key in dbe.yaml or OPENAI_API_KEY env var.",
+          );
           process.exit(1);
         }
         if (!llmConfig.api_key) {
@@ -101,7 +106,9 @@ program
 
       // Parse options
       const format = ["json", "markdown"].includes(options.format) ? options.format : "json";
-      const adapter = ["file", "gbrain", "stdout"].includes(options.adapter) ? options.adapter : "stdout";
+      const adapter = ["file", "gbrain", "stdout"].includes(options.adapter)
+        ? options.adapter
+        : "stdout";
       const limit = options.limit ? parseInt(options.limit, 10) : undefined;
 
       // Parse relative since values
@@ -109,9 +116,10 @@ program
       if (sinceValue) {
         const relMatch = sinceValue.match(/^(\d+)([dhm])$/);
         if (relMatch) {
-          const amount = parseInt(relMatch[1]);
+          const amount = parseInt(relMatch[1], 10);
           const unit = relMatch[2];
-          const ms = unit === 'd' ? amount * 86400000 : unit === 'h' ? amount * 3600000 : amount * 60000;
+          const ms =
+            unit === "d" ? amount * 86400000 : unit === "h" ? amount * 3600000 : amount * 60000;
           sinceValue = new Date(Date.now() - ms).toISOString();
         }
       }
@@ -130,7 +138,7 @@ program
         // Health check
         const health = await collector.healthCheck();
         if (!health.ok) {
-          if (options.source === 'all') {
+          if (options.source === "all") {
             console.warn(`Warning: ${sourceId} not available — ${health.message}. Skipping.`);
             continue;
           }
@@ -177,7 +185,10 @@ program
             anyFailed = true;
           }
         } catch (error) {
-          console.error(`\nPipeline failed for ${sourceId}:`, error instanceof Error ? error.message : String(error));
+          console.error(
+            `\nPipeline failed for ${sourceId}:`,
+            error instanceof Error ? error.message : String(error),
+          );
           anyFailed = true;
         }
       }
@@ -212,7 +223,9 @@ program
         config = loadConfig(options.config);
         ok.push("Configuration loaded successfully");
       } catch (error) {
-        issues.push(`Configuration loading failed: ${error instanceof Error ? error.message : String(error)}`);
+        issues.push(
+          `Configuration loading failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     } else {
       warnings.push(`Configuration file not found: ${configPath}`);

@@ -3,7 +3,7 @@
  * Defines how platform-specific parsers communicate with AgentSessionCollector.
  */
 
-import type { RawMessage } from '../../core/types';
+import type { RawMessage } from "../../core/types";
 
 /**
  * Metadata extracted from a session (first line or header of a session file).
@@ -49,10 +49,7 @@ export interface SessionParser {
    * Convert a conversation record line into a RawMessage.
    * Returns null if parsing fails or the line should be skipped.
    */
-  parseRecord(
-    line: Record<string, unknown>,
-    context: SessionParseContext
-  ): RawMessage | null;
+  parseRecord(line: Record<string, unknown>, context: SessionParseContext): RawMessage | null;
 }
 
 /**

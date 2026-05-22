@@ -1,7 +1,17 @@
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import type { Adapter, AdapterPushResult, ExtractionResult, Entity, Decision, TaskSignal, Discovery, TimelineEntry, Link } from '../core/types.js';
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import type {
+  Adapter,
+  AdapterPushResult,
+  Decision,
+  Discovery,
+  Entity,
+  ExtractionResult,
+  Link,
+  TaskSignal,
+  TimelineEntry,
+} from "../core/types.js";
 
 export interface GBrainAdapterConfig {
   output_dir: string;
@@ -27,12 +37,11 @@ interface ParsedPage {
 }
 
 export class GBrainAdapter implements Adapter {
-  id = 'gbrain';
-  name = 'GBrain Adapter';
-  description = 'Writes extraction results to GBrain page files';
+  id = "gbrain";
+  name = "GBrain Adapter";
+  description = "Writes extraction results to GBrain page files";
 
   private config: GBrainAdapterConfig;
-  private processedHashes: Set<string> = new Set();
 
   constructor(config: GBrainAdapterConfig) {
     this.config = config;
@@ -43,7 +52,7 @@ export class GBrainAdapter implements Adapter {
       return { ok: false, message: `Output directory does not exist: ${this.config.output_dir}` };
     }
 
-    return { ok: true, message: 'GBrain adapter is ready' };
+    return { ok: true, message: "GBrain adapter is ready" };
   }
 
   async push(results: ExtractionResult[]): Promise<AdapterPushResult> {
@@ -106,7 +115,7 @@ export class GBrainAdapter implements Adapter {
     return pushResult;
   }
 
-  private async writeEntity(entity: Entity, sourceHash: string): Promise<AdapterPushResult> {
+  private async writeEntity(entity: Entity, _sourceHash: string): Promise<AdapterPushResult> {
     const result: AdapterPushResult = { written: 0, skipped: 0, errors: [] };
 
     try {
@@ -121,7 +130,7 @@ export class GBrainAdapter implements Adapter {
       let content: string;
       if (existsSync(filepath)) {
         // Merge with existing page
-        const existingContent = await readFile(filepath, 'utf-8');
+        const existingContent = await readFile(filepath, "utf-8");
         const parsed = this.parsePage(existingContent);
 
         // Update frontmatter
@@ -129,7 +138,7 @@ export class GBrainAdapter implements Adapter {
         parsed.frontmatter.confidence = entity.confidence;
 
         // Update context section
-        parsed.sections.set('Context', [entity.context]);
+        parsed.sections.set("Context", [entity.context]);
 
         content = this.serializePage(parsed);
         result.written += 1;
@@ -147,7 +156,7 @@ export class GBrainAdapter implements Adapter {
         result.written += 1;
       }
 
-      await writeFile(filepath, content, 'utf-8');
+      await writeFile(filepath, content, "utf-8");
     } catch (error) {
       result.errors.push({
         signal: `entity:${entity.slug}`,
@@ -163,7 +172,7 @@ export class GBrainAdapter implements Adapter {
 
     try {
       const slug = this.kebabCase(decision.summary);
-      const filepath = join(this.config.output_dir, 'decisions', `${slug}.md`);
+      const filepath = join(this.config.output_dir, "decisions", `${slug}.md`);
       const dirPath = dirname(filepath);
 
       if (!existsSync(dirPath)) {
@@ -172,7 +181,7 @@ export class GBrainAdapter implements Adapter {
 
       // Check if same decision already exists with same hash
       if (existsSync(filepath)) {
-        const existingContent = await readFile(filepath, 'utf-8');
+        const existingContent = await readFile(filepath, "utf-8");
         if (existingContent.includes(`source_hash: ${sourceHash}`)) {
           result.skipped += 1;
           return result;
@@ -181,7 +190,7 @@ export class GBrainAdapter implements Adapter {
 
       const frontmatter: PageFrontmatter = {
         title: decision.summary,
-        type: 'decision',
+        type: "decision",
         slug: `decisions/${slug}`,
         date: decision.date,
         entities: decision.entities,
@@ -191,13 +200,13 @@ export class GBrainAdapter implements Adapter {
       const parts: string[] = [];
 
       // Frontmatter
-      parts.push('---');
+      parts.push("---");
       parts.push(`title: ${frontmatter.title}`);
       parts.push(`type: ${frontmatter.type}`);
       parts.push(`slug: ${frontmatter.slug}`);
       parts.push(`date: ${frontmatter.date}`);
       if (decision.entities.length > 0) {
-        parts.push('entities:');
+        parts.push("entities:");
         for (const entity of decision.entities) {
           parts.push(`  - ${entity}`);
         }
@@ -205,32 +214,32 @@ export class GBrainAdapter implements Adapter {
       parts.push(`confidence: ${decision.confidence}`);
       parts.push(`source_hash: ${sourceHash}`);
       parts.push(`created_at: ${frontmatter.created_at}`);
-      parts.push('---');
-      parts.push('');
+      parts.push("---");
+      parts.push("");
 
       // Summary
       parts.push(`# ${decision.summary}`);
-      parts.push('');
+      parts.push("");
 
       // Reasoning
       if (decision.reasoning) {
-        parts.push('## Reasoning');
-        parts.push('');
+        parts.push("## Reasoning");
+        parts.push("");
         parts.push(decision.reasoning);
-        parts.push('');
+        parts.push("");
       }
 
       // Alternatives
       if (decision.alternatives && decision.alternatives.length > 0) {
-        parts.push('## Alternatives');
-        parts.push('');
+        parts.push("## Alternatives");
+        parts.push("");
         for (const alt of decision.alternatives) {
           parts.push(`- ${alt}`);
         }
-        parts.push('');
+        parts.push("");
       }
 
-      await writeFile(filepath, parts.join('\n'), 'utf-8');
+      await writeFile(filepath, parts.join("\n"), "utf-8");
       result.written += 1;
     } catch (error) {
       result.errors.push({
@@ -247,7 +256,7 @@ export class GBrainAdapter implements Adapter {
 
     try {
       const slug = this.kebabCase(task.title);
-      const filepath = join(this.config.output_dir, 'tasks', `${slug}.md`);
+      const filepath = join(this.config.output_dir, "tasks", `${slug}.md`);
       const dirPath = dirname(filepath);
 
       if (!existsSync(dirPath)) {
@@ -256,7 +265,7 @@ export class GBrainAdapter implements Adapter {
 
       // Check for duplicate
       if (existsSync(filepath)) {
-        const existingContent = await readFile(filepath, 'utf-8');
+        const existingContent = await readFile(filepath, "utf-8");
         if (existingContent.includes(`source_hash: ${sourceHash}`)) {
           result.skipped += 1;
           return result;
@@ -265,7 +274,7 @@ export class GBrainAdapter implements Adapter {
 
       const frontmatter: PageFrontmatter = {
         title: task.title,
-        type: 'task',
+        type: "task",
         slug: `tasks/${slug}`,
         status: task.status,
         owner: task.owner,
@@ -276,7 +285,7 @@ export class GBrainAdapter implements Adapter {
       const parts: string[] = [];
 
       // Frontmatter
-      parts.push('---');
+      parts.push("---");
       parts.push(`title: ${frontmatter.title}`);
       parts.push(`type: ${frontmatter.type}`);
       parts.push(`slug: ${frontmatter.slug}`);
@@ -287,14 +296,14 @@ export class GBrainAdapter implements Adapter {
       parts.push(`confidence: ${task.confidence}`);
       parts.push(`source_hash: ${sourceHash}`);
       parts.push(`created_at: ${frontmatter.created_at}`);
-      parts.push('---');
-      parts.push('');
+      parts.push("---");
+      parts.push("");
 
       // Title
       parts.push(`# ${task.title}`);
-      parts.push('');
+      parts.push("");
 
-      await writeFile(filepath, parts.join('\n'), 'utf-8');
+      await writeFile(filepath, parts.join("\n"), "utf-8");
       result.written += 1;
     } catch (error) {
       result.errors.push({
@@ -306,12 +315,15 @@ export class GBrainAdapter implements Adapter {
     return result;
   }
 
-  private async writeDiscovery(discovery: Discovery, sourceHash: string): Promise<AdapterPushResult> {
+  private async writeDiscovery(
+    discovery: Discovery,
+    sourceHash: string,
+  ): Promise<AdapterPushResult> {
     const result: AdapterPushResult = { written: 0, skipped: 0, errors: [] };
 
     try {
       const slug = this.kebabCase(discovery.summary);
-      const filepath = join(this.config.output_dir, 'discoveries', `${slug}.md`);
+      const filepath = join(this.config.output_dir, "discoveries", `${slug}.md`);
       const dirPath = dirname(filepath);
 
       if (!existsSync(dirPath)) {
@@ -320,7 +332,7 @@ export class GBrainAdapter implements Adapter {
 
       // Check for duplicate
       if (existsSync(filepath)) {
-        const existingContent = await readFile(filepath, 'utf-8');
+        const existingContent = await readFile(filepath, "utf-8");
         if (existingContent.includes(`source_hash: ${sourceHash}`)) {
           result.skipped += 1;
           return result;
@@ -338,12 +350,12 @@ export class GBrainAdapter implements Adapter {
       const parts: string[] = [];
 
       // Frontmatter
-      parts.push('---');
+      parts.push("---");
       parts.push(`title: ${frontmatter.title}`);
       parts.push(`type: ${frontmatter.type}`);
       parts.push(`slug: ${frontmatter.slug}`);
       if (discovery.entities.length > 0) {
-        parts.push('entities:');
+        parts.push("entities:");
         for (const entity of discovery.entities) {
           parts.push(`  - ${entity}`);
         }
@@ -351,22 +363,22 @@ export class GBrainAdapter implements Adapter {
       parts.push(`confidence: ${discovery.confidence}`);
       parts.push(`source_hash: ${sourceHash}`);
       parts.push(`created_at: ${frontmatter.created_at}`);
-      parts.push('---');
-      parts.push('');
+      parts.push("---");
+      parts.push("");
 
       // Summary
       parts.push(`# ${discovery.summary}`);
-      parts.push('');
+      parts.push("");
 
       // Detail
       if (discovery.detail) {
-        parts.push('## Detail');
-        parts.push('');
+        parts.push("## Detail");
+        parts.push("");
         parts.push(discovery.detail);
-        parts.push('');
+        parts.push("");
       }
 
-      await writeFile(filepath, parts.join('\n'), 'utf-8');
+      await writeFile(filepath, parts.join("\n"), "utf-8");
       result.written += 1;
     } catch (error) {
       result.errors.push({
@@ -378,7 +390,10 @@ export class GBrainAdapter implements Adapter {
     return result;
   }
 
-  private async appendTimelineEntry(entry: TimelineEntry, sourceHash: string): Promise<AdapterPushResult> {
+  private async appendTimelineEntry(
+    entry: TimelineEntry,
+    sourceHash: string,
+  ): Promise<AdapterPushResult> {
     const result: AdapterPushResult = { written: 0, skipped: 0, errors: [] };
 
     // Append timeline entry to all related entity pages
@@ -391,10 +406,13 @@ export class GBrainAdapter implements Adapter {
           continue;
         }
 
-        const existingContent = await readFile(filepath, 'utf-8');
+        const existingContent = await readFile(filepath, "utf-8");
 
         // Check for duplicate
-        if (existingContent.includes(`source_hash: ${sourceHash}`) && existingContent.includes(entry.summary)) {
+        if (
+          existingContent.includes(`source_hash: ${sourceHash}`) &&
+          existingContent.includes(entry.summary)
+        ) {
           result.skipped += 1;
           continue;
         }
@@ -402,21 +420,21 @@ export class GBrainAdapter implements Adapter {
         const parsed = this.parsePage(existingContent);
 
         // Get or create Timeline section
-        const timelineLines = parsed.sections.get('Timeline') || [];
+        const timelineLines = parsed.sections.get("Timeline") || [];
 
         // Add new entry
         timelineLines.push(`### ${entry.date}`);
-        timelineLines.push('');
+        timelineLines.push("");
         timelineLines.push(entry.summary);
-        timelineLines.push('');
+        timelineLines.push("");
         timelineLines.push(`**Confidence:** ${entry.confidence}`);
         timelineLines.push(`**Source Hash:** ${sourceHash}`);
-        timelineLines.push('');
+        timelineLines.push("");
 
-        parsed.sections.set('Timeline', timelineLines);
+        parsed.sections.set("Timeline", timelineLines);
 
         const newContent = this.serializePage(parsed);
-        await writeFile(filepath, newContent, 'utf-8');
+        await writeFile(filepath, newContent, "utf-8");
 
         result.written += 1;
       } catch (error) {
@@ -441,10 +459,13 @@ export class GBrainAdapter implements Adapter {
         return result;
       }
 
-      const existingContent = await readFile(filepath, 'utf-8');
+      const existingContent = await readFile(filepath, "utf-8");
 
       // Check for duplicate
-      if (existingContent.includes(`${link.type}: ${link.to}`) && existingContent.includes(`source_hash: ${sourceHash}`)) {
+      if (
+        existingContent.includes(`${link.type}: ${link.to}`) &&
+        existingContent.includes(`source_hash: ${sourceHash}`)
+      ) {
         result.skipped += 1;
         return result;
       }
@@ -452,19 +473,19 @@ export class GBrainAdapter implements Adapter {
       const parsed = this.parsePage(existingContent);
 
       // Get or create Links section
-      const linksLines = parsed.sections.get('Links') || [];
+      const linksLines = parsed.sections.get("Links") || [];
 
       // Add new link
       linksLines.push(`- **${link.type}**: ${link.to}`);
       linksLines.push(`  - Context: ${link.context}`);
       linksLines.push(`  - Confidence: ${link.confidence}`);
       linksLines.push(`  - Source Hash: ${sourceHash}`);
-      linksLines.push('');
+      linksLines.push("");
 
-      parsed.sections.set('Links', linksLines);
+      parsed.sections.set("Links", linksLines);
 
       const newContent = this.serializePage(parsed);
-      await writeFile(filepath, newContent, 'utf-8');
+      await writeFile(filepath, newContent, "utf-8");
 
       result.written += 1;
     } catch (error) {
@@ -478,16 +499,16 @@ export class GBrainAdapter implements Adapter {
   }
 
   private parsePage(content: string): ParsedPage {
-    const lines = content.split('\n');
+    const lines = content.split("\n");
     const frontmatter: Partial<PageFrontmatter> = {};
     const sections = new Map<string, string[]>();
 
     let inFrontmatter = false;
-    let currentSection = '';
+    let currentSection = "";
     let currentSectionLines: string[] = [];
 
     for (const line of lines) {
-      if (line.trim() === '---') {
+      if (line.trim() === "---") {
         if (!inFrontmatter) {
           inFrontmatter = true;
         } else {
@@ -501,9 +522,9 @@ export class GBrainAdapter implements Adapter {
         const match = line.match(/^(\w+):\s*(.+)$/);
         if (match) {
           const [, key, value] = match;
-          (frontmatter as any)[key] = value;
+          (frontmatter as Record<string, string>)[key] = value;
         }
-      } else if (line.startsWith('## ')) {
+      } else if (line.startsWith("## ")) {
         // Save previous section
         if (currentSection) {
           sections.set(currentSection, currentSectionLines);
@@ -532,7 +553,7 @@ export class GBrainAdapter implements Adapter {
     const parts: string[] = [];
 
     // Frontmatter
-    parts.push('---');
+    parts.push("---");
     for (const [key, value] of Object.entries(parsed.frontmatter)) {
       if (Array.isArray(value)) {
         parts.push(`${key}:`);
@@ -543,53 +564,53 @@ export class GBrainAdapter implements Adapter {
         parts.push(`${key}: ${value}`);
       }
     }
-    parts.push('---');
-    parts.push('');
+    parts.push("---");
+    parts.push("");
 
     // Sections
     for (const [sectionName, sectionLines] of parsed.sections.entries()) {
       parts.push(`## ${sectionName}`);
-      parts.push('');
+      parts.push("");
       parts.push(...sectionLines);
     }
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   private createEntityPage(frontmatter: PageFrontmatter, context: string): string {
     const parts: string[] = [];
 
     // Frontmatter
-    parts.push('---');
+    parts.push("---");
     parts.push(`title: ${frontmatter.title}`);
     parts.push(`type: ${frontmatter.type}`);
     parts.push(`slug: ${frontmatter.slug}`);
     parts.push(`created_at: ${frontmatter.created_at}`);
     parts.push(`confidence: ${frontmatter.confidence}`);
-    parts.push('---');
-    parts.push('');
+    parts.push("---");
+    parts.push("");
 
     // Context section
-    parts.push('## Context');
-    parts.push('');
+    parts.push("## Context");
+    parts.push("");
     parts.push(context);
-    parts.push('');
+    parts.push("");
 
     // Timeline section (empty)
-    parts.push('## Timeline');
-    parts.push('');
+    parts.push("## Timeline");
+    parts.push("");
 
     // Links section (empty)
-    parts.push('## Links');
-    parts.push('');
+    parts.push("## Links");
+    parts.push("");
 
-    return parts.join('\n');
+    return parts.join("\n");
   }
 
   private kebabCase(str: string): string {
     return str
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
   }
 }

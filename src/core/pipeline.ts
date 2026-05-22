@@ -4,28 +4,27 @@
  * Collector → Dedup → BlockBuilder → NoiseFilter → Extractor → Privacy → Formatter → Adapter
  */
 
+import { FileAdapter } from "../adapters/file.js";
+import { GBrainAdapter } from "../adapters/gbrain.js";
+import { StdoutAdapter } from "../adapters/stdout.js";
+import { filterNoise, type NoiseFilterVerdict } from "../extractors/noise-filter.js";
+import type { LLMProvider } from "../extractors/providers/types.js";
+import { createSignalExtractor } from "../extractors/signal-extractor.js";
+import { JSONFormatter } from "../formatters/json.js";
+import { MarkdownFormatter } from "../formatters/markdown.js";
+import { PrivacyProcessor } from "../processors/privacy.js";
+import { BlockBuilder } from "./block-builder.js";
+import type { PrivacyConfig } from "./config.js";
+import { CursorStore } from "./cursors.js";
+import { DedupStore } from "./dedup.js";
 import type {
-  Collector,
-  RawMessage,
-  ConversationBlock,
-  BlockResult,
-  ExtractionResult,
-  Formatter,
   Adapter,
-} from './types.js';
-import type { LLMProvider } from '../extractors/providers/types.js';
-import { DedupStore } from './dedup.js';
-import { CursorStore } from './cursors.js';
-import { BlockBuilder } from './block-builder.js';
-import { filterNoise, NoiseFilterVerdict } from '../extractors/noise-filter.js';
-import { createSignalExtractor } from '../extractors/signal-extractor.js';
-import { PrivacyProcessor } from '../processors/privacy.js';
-import { JSONFormatter } from '../formatters/json.js';
-import { MarkdownFormatter } from '../formatters/markdown.js';
-import { FileAdapter } from '../adapters/file.js';
-import { GBrainAdapter } from '../adapters/gbrain.js';
-import { StdoutAdapter } from '../adapters/stdout.js';
-import type { PrivacyConfig } from './config.js';
+  BlockResult,
+  Collector,
+  ConversationBlock,
+  ExtractionResult,
+  RawMessage,
+} from "./types.js";
 
 /**
  * Pipeline configuration
@@ -46,8 +45,8 @@ export interface PipelineConfig {
 export interface PipelineOpts {
   source: Collector;
   provider?: LLMProvider;
-  format: 'json' | 'markdown';
-  adapter: 'file' | 'gbrain' | 'stdout';
+  format: "json" | "markdown";
+  adapter: "file" | "gbrain" | "stdout";
   dryRun?: boolean;
   since?: string;
   limit?: number;
@@ -80,7 +79,7 @@ export interface PipelineResult {
  */
 export async function runPipeline(
   config: PipelineConfig,
-  opts: PipelineOpts
+  opts: PipelineOpts,
 ): Promise<PipelineResult> {
   const result: PipelineResult = {
     fatal: false,
@@ -132,7 +131,7 @@ export async function runPipeline(
         // Dedup check
         const dedupStatus = dedupStore.check(msg);
 
-        if (dedupStatus === 'unchanged') {
+        if (dedupStatus === "unchanged") {
           result.skippedMessages.push(msg);
           continue;
         }
@@ -162,7 +161,7 @@ export async function runPipeline(
           for (const msg of newOrModifiedMessages) {
             yield msg;
           }
-        })()
+        })(),
       )) {
         blocks.push(block);
         result.totalBlocks++;
@@ -181,21 +180,21 @@ export async function runPipeline(
     // Stage 3: NoiseFilter + Extractor + Privacy + Formatter + Adapter
     if (!opts.provider) {
       result.fatal = true;
-      result.error = 'LLM provider is required for non-dry-run execution';
+      result.error = "LLM provider is required for non-dry-run execution";
       return result;
     }
 
     const extractor = createSignalExtractor(opts.provider);
     const privacyProcessor = new PrivacyProcessor(config.privacy);
-    const formatter = opts.format === 'json' ? new JSONFormatter() : new MarkdownFormatter();
+    const _formatter = opts.format === "json" ? new JSONFormatter() : new MarkdownFormatter();
 
     let adapter: Adapter;
-    if (opts.adapter === 'file') {
+    if (opts.adapter === "file") {
       adapter = new FileAdapter({
         output_dir: config.output_dir,
         format: opts.format,
       });
-    } else if (opts.adapter === 'gbrain') {
+    } else if (opts.adapter === "gbrain") {
       adapter = new GBrainAdapter();
     } else {
       adapter = new StdoutAdapter();
@@ -217,7 +216,7 @@ export async function runPipeline(
         // Noise filter
         const filterVerdict: NoiseFilterVerdict = await filterNoise(block, opts.provider);
 
-        if (filterVerdict === 'skip') {
+        if (filterVerdict === "skip") {
           result.skippedBlocks++;
           result.skippedMessages.push(...block.messages);
           continue;
@@ -226,16 +225,14 @@ export async function runPipeline(
         // Extract signals
         const blockResult: BlockResult = await extractor.extract(block);
 
-        if (blockResult.status === 'failed') {
+        if (blockResult.status === "failed") {
           result.failedBlocks++;
           result.failedMessages.push(...block.messages);
-          result.warnings.push(
-            `Block ${block.block_id} extraction failed: ${blockResult.error}`
-          );
+          result.warnings.push(`Block ${block.block_id} extraction failed: ${blockResult.error}`);
           continue;
         }
 
-        if (blockResult.status === 'skipped') {
+        if (blockResult.status === "skipped") {
           result.skippedBlocks++;
           result.skippedMessages.push(...block.messages);
           continue;
@@ -256,7 +253,7 @@ export async function runPipeline(
         result.failedBlocks++;
         result.failedMessages.push(...block.messages);
         result.warnings.push(
-          `Block ${block.block_id} processing error: ${err instanceof Error ? err.message : String(err)}`
+          `Block ${block.block_id} processing error: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
@@ -285,10 +282,7 @@ export async function runPipeline(
 
       // Commit cursor if we have a last successful message
       if (result.lastSuccessMessage?.metadata?.cursor) {
-        cursorStore.set(
-          opts.source.id,
-          String(result.lastSuccessMessage.metadata.cursor)
-        );
+        cursorStore.set(opts.source.id, String(result.lastSuccessMessage.metadata.cursor));
         cursorStore.commit();
       }
     }

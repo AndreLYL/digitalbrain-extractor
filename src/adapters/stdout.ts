@@ -1,12 +1,12 @@
-import type { Adapter, AdapterPushResult, ExtractionResult } from '../core/types.js';
+import type { Adapter, AdapterPushResult, ExtractionResult } from "../core/types.js";
 
 export class StdoutAdapter implements Adapter {
-  id = 'stdout';
-  name = 'Stdout Adapter';
-  description = 'Outputs extraction results to stdout as JSON';
+  id = "stdout";
+  name = "Stdout Adapter";
+  description = "Outputs extraction results to stdout as JSON";
 
   async healthCheck(): Promise<{ ok: boolean; message: string }> {
-    return { ok: true, message: 'Stdout adapter is always ready' };
+    return { ok: true, message: "Stdout adapter is always ready" };
   }
 
   async push(results: ExtractionResult[]): Promise<AdapterPushResult> {

@@ -1,18 +1,18 @@
-import * as path from 'node:path';
-import * as os from 'node:os';
-import type { RawMessage } from '../../core/types';
-import type { SessionParser, SessionLayout, SessionMeta, SessionParseContext } from './types';
-import { AgentSessionCollector } from './collector';
+import * as os from "node:os";
+import * as path from "node:path";
+import type { RawMessage } from "../../core/types";
+import { AgentSessionCollector } from "./collector";
+import type { SessionLayout, SessionMeta, SessionParseContext, SessionParser } from "./types";
 
 export class ClaudeCodeParser implements SessionParser {
-  readonly platformId = 'claude-code';
+  readonly platformId = "claude-code";
 
   parseSessionMeta(_line: Record<string, unknown>): SessionMeta | null {
     return null;
   }
 
   isConversationRecord(line: Record<string, unknown>): boolean {
-    return line.type === 'user' || line.type === 'assistant';
+    return line.type === "user" || line.type === "assistant";
   }
 
   parseRecord(line: Record<string, unknown>, context: SessionParseContext): RawMessage | null {
@@ -27,25 +27,25 @@ export class ClaudeCodeParser implements SessionParser {
     const { role, content } = message;
 
     let textContent: string;
-    if (typeof content === 'string') {
+    if (typeof content === "string") {
       textContent = content;
     } else if (Array.isArray(content)) {
       textContent = (content as Array<{ type: string; text?: string }>)
-        .filter((block) => block.type === 'text' && block.text)
-        .map((block) => block.text!)
-        .join('\n\n');
+        .filter((block) => block.type === "text" && block.text)
+        .map((block) => block.text ?? "")
+        .join("\n\n");
       if (!textContent.trim()) return null;
     } else {
       return null;
     }
 
     return {
-      platform: 'claude-code',
+      platform: "claude-code",
       channel: sessionId, // Use sessionId from content, not from path
-      contact: role === 'user' ? 'user' : 'assistant',
+      contact: role === "user" ? "user" : "assistant",
       timestamp,
       content: textContent,
-      direction: role === 'user' ? 'sent' : 'received',
+      direction: role === "user" ? "sent" : "received",
       metadata: {
         session_id: sessionId,
         uuid,
@@ -57,11 +57,11 @@ export class ClaudeCodeParser implements SessionParser {
 }
 
 export function claudeCodeLayout(baseDir?: string): SessionLayout {
-  const base = baseDir || path.join(os.homedir(), '.claude', 'projects');
+  const base = baseDir || path.join(os.homedir(), ".claude", "projects");
   return {
     baseDir: base,
-    glob: '*/*.jsonl',
-    sessionIdFromPath: (filePath: string) => path.basename(filePath, '.jsonl'),
+    glob: "*/*.jsonl",
+    sessionIdFromPath: (filePath: string) => path.basename(filePath, ".jsonl"),
     channelFromPath: (_filePath: string, sessionId: string) => sessionId,
   };
 }
@@ -71,8 +71,8 @@ export function createClaudeCodeCollector(baseDir?: string): AgentSessionCollect
     claudeCodeLayout(baseDir),
     new ClaudeCodeParser(),
     {
-      name: 'Claude Code Agent',
-      description: 'Collects conversation history from Claude Code JSONL transcripts',
+      name: "Claude Code Agent",
+      description: "Collects conversation history from Claude Code JSONL transcripts",
     },
   );
 

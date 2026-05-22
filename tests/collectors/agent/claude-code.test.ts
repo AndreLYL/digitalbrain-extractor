@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createClaudeCodeCollector } from '../../../src/collectors/agent/claude-code';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import * as os from 'node:os';
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createClaudeCodeCollector } from "../../../src/collectors/agent/claude-code";
 
-describe('ClaudeCodeCollector', () => {
+describe("ClaudeCodeCollector", () => {
   let tempDir: string;
   let collector: ReturnType<typeof createClaudeCodeCollector>;
 
   beforeEach(async () => {
     // Create temporary directory for test
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-code-test-'));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "claude-code-test-"));
     collector = createClaudeCodeCollector(tempDir);
   });
 
@@ -19,35 +19,32 @@ describe('ClaudeCodeCollector', () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
-  it('should have correct collector metadata', () => {
-    expect(collector.id).toBe('claude-code');
-    expect(collector.name).toBe('Claude Code Agent');
-    expect(collector.description).toContain('Claude Code');
+  it("should have correct collector metadata", () => {
+    expect(collector.id).toBe("claude-code");
+    expect(collector.name).toBe("Claude Code Agent");
+    expect(collector.description).toContain("Claude Code");
   });
 
-  it('should pass health check when directory exists', async () => {
+  it("should pass health check when directory exists", async () => {
     const result = await collector.healthCheck();
     expect(result.ok).toBe(true);
-    expect(result.message).toContain('exist');
+    expect(result.message).toContain("exist");
   });
 
-  it('should fail health check when directory does not exist', async () => {
-    const nonExistentCollector = createClaudeCodeCollector('/non/existent/path');
+  it("should fail health check when directory does not exist", async () => {
+    const nonExistentCollector = createClaudeCodeCollector("/non/existent/path");
     const result = await nonExistentCollector.healthCheck();
     expect(result.ok).toBe(false);
-    expect(result.message).toContain('not found');
+    expect(result.message).toContain("not found");
   });
 
-  it('should parse JSONL file and extract messages', async () => {
+  it("should parse JSONL file and extract messages", async () => {
     // Copy fixture to temp directory structure
-    const projectDir = path.join(tempDir, 'test-project');
+    const projectDir = path.join(tempDir, "test-project");
     await fs.mkdir(projectDir, { recursive: true });
 
-    const fixturePath = path.join(
-      __dirname,
-      '../../fixtures/claude-code-session/sample.jsonl'
-    );
-    const targetPath = path.join(projectDir, 'session-001.jsonl');
+    const fixturePath = path.join(__dirname, "../../fixtures/claude-code-session/sample.jsonl");
+    const targetPath = path.join(projectDir, "session-001.jsonl");
     await fs.copyFile(fixturePath, targetPath);
 
     const messages = [];
@@ -60,43 +57,43 @@ describe('ClaudeCodeCollector', () => {
 
     // Check first user message
     const firstUser = messages[0];
-    expect(firstUser.platform).toBe('claude-code');
-    expect(firstUser.channel).toBe('test-session-001');
-    expect(firstUser.contact).toBe('user');
-    expect(firstUser.direction).toBe('sent');
-    expect(firstUser.content).toContain('Hello, can you help me');
-    expect(firstUser.timestamp).toBe('2024-01-01T10:00:01.000Z');
-    expect(firstUser.metadata?.session_id).toBe('test-session-001');
-    expect(firstUser.metadata?.uuid).toBe('uuid-001');
-    expect(firstUser.metadata?.cursor).toBe('test-session-001');
+    expect(firstUser.platform).toBe("claude-code");
+    expect(firstUser.channel).toBe("test-session-001");
+    expect(firstUser.contact).toBe("user");
+    expect(firstUser.direction).toBe("sent");
+    expect(firstUser.content).toContain("Hello, can you help me");
+    expect(firstUser.timestamp).toBe("2024-01-01T10:00:01.000Z");
+    expect(firstUser.metadata?.session_id).toBe("test-session-001");
+    expect(firstUser.metadata?.uuid).toBe("uuid-001");
+    expect(firstUser.metadata?.cursor).toBe("test-session-001");
 
     // Check first assistant message
     const firstAssistant = messages[1];
-    expect(firstAssistant.platform).toBe('claude-code');
-    expect(firstAssistant.contact).toBe('assistant');
-    expect(firstAssistant.direction).toBe('received');
-    expect(firstAssistant.content).toContain('Of course!');
-    expect(firstAssistant.metadata?.session_id).toBe('test-session-001');
-    expect(firstAssistant.metadata?.uuid).toBe('uuid-002');
+    expect(firstAssistant.platform).toBe("claude-code");
+    expect(firstAssistant.contact).toBe("assistant");
+    expect(firstAssistant.direction).toBe("received");
+    expect(firstAssistant.content).toContain("Of course!");
+    expect(firstAssistant.metadata?.session_id).toBe("test-session-001");
+    expect(firstAssistant.metadata?.uuid).toBe("uuid-002");
   });
 
-  it('should handle cursor-based pagination', async () => {
+  it("should handle cursor-based pagination", async () => {
     // Create two session files
-    const projectDir = path.join(tempDir, 'test-project');
+    const projectDir = path.join(tempDir, "test-project");
     await fs.mkdir(projectDir, { recursive: true });
 
     // Session 1
-    const session1 = path.join(projectDir, 'session-001.jsonl');
+    const session1 = path.join(projectDir, "session-001.jsonl");
     await fs.writeFile(
       session1,
-      '{"type":"user","message":{"role":"user","content":"First session"},"uuid":"s1-001","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"session-001"}\n'
+      '{"type":"user","message":{"role":"user","content":"First session"},"uuid":"s1-001","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"session-001"}\n',
     );
 
     // Session 2
-    const session2 = path.join(projectDir, 'session-002.jsonl');
+    const session2 = path.join(projectDir, "session-002.jsonl");
     await fs.writeFile(
       session2,
-      '{"type":"user","message":{"role":"user","content":"Second session"},"uuid":"s2-001","timestamp":"2024-01-01T11:00:00.000Z","sessionId":"session-002"}\n'
+      '{"type":"user","message":{"role":"user","content":"Second session"},"uuid":"s2-001","timestamp":"2024-01-01T11:00:00.000Z","sessionId":"session-002"}\n',
     );
 
     // First fetch - no cursor, should get both sessions
@@ -108,21 +105,21 @@ describe('ClaudeCodeCollector', () => {
 
     // Second fetch - with cursor for session-001, should only get session-002
     const newMessages = [];
-    for await (const msg of collector.fetch({ cursor: 'session-001' })) {
+    for await (const msg of collector.fetch({ cursor: "session-001" })) {
       newMessages.push(msg);
     }
     expect(newMessages.length).toBe(1);
-    expect(newMessages[0].metadata?.session_id).toBe('session-002');
+    expect(newMessages[0].metadata?.session_id).toBe("session-002");
   });
 
-  it('should normalize metadata field names to snake_case', async () => {
-    const projectDir = path.join(tempDir, 'test-project');
+  it("should normalize metadata field names to snake_case", async () => {
+    const projectDir = path.join(tempDir, "test-project");
     await fs.mkdir(projectDir, { recursive: true });
 
-    const sessionFile = path.join(projectDir, 'session-test.jsonl');
+    const sessionFile = path.join(projectDir, "session-test.jsonl");
     await fs.writeFile(
       sessionFile,
-      '{"type":"user","message":{"role":"user","content":"Test"},"uuid":"test-uuid","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"test-session","cwd":"/test/path"}\n'
+      '{"type":"user","message":{"role":"user","content":"Test"},"uuid":"test-uuid","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"test-session","cwd":"/test/path"}\n',
     );
 
     const messages = [];
@@ -134,23 +131,23 @@ describe('ClaudeCodeCollector', () => {
     const metadata = messages[0].metadata;
 
     // Should have snake_case keys
-    expect(metadata?.session_id).toBe('test-session');
-    expect(metadata?.uuid).toBe('test-uuid');
-    expect(metadata?.cursor).toBe('test-session');
+    expect(metadata?.session_id).toBe("test-session");
+    expect(metadata?.uuid).toBe("test-uuid");
+    expect(metadata?.cursor).toBe("test-session");
 
     // Should NOT have camelCase keys
     expect(metadata?.sessionId).toBeUndefined();
   });
 
-  it('should skip assistant messages with only tool_use content', async () => {
-    const projectDir = path.join(tempDir, 'test-project');
+  it("should skip assistant messages with only tool_use content", async () => {
+    const projectDir = path.join(tempDir, "test-project");
     await fs.mkdir(projectDir, { recursive: true });
 
-    const sessionFile = path.join(projectDir, 'session-test.jsonl');
+    const sessionFile = path.join(projectDir, "session-test.jsonl");
     // Assistant message with array content (tool_use only, no text blocks)
     await fs.writeFile(
       sessionFile,
-      '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool-1","name":"Read","input":{"file_path":"/test.ts"}}]},"uuid":"test-uuid","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"test-session"}\n'
+      '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool-1","name":"Read","input":{"file_path":"/test.ts"}}]},"uuid":"test-uuid","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"test-session"}\n',
     );
 
     const messages = [];
@@ -161,8 +158,8 @@ describe('ClaudeCodeCollector', () => {
     expect(messages.length).toBe(0);
   });
 
-  it('should yield empty when no JSONL files found', async () => {
-    const emptyDir = path.join(tempDir, 'empty-project');
+  it("should yield empty when no JSONL files found", async () => {
+    const emptyDir = path.join(tempDir, "empty-project");
     await fs.mkdir(emptyDir, { recursive: true });
 
     const messages = [];
@@ -173,21 +170,21 @@ describe('ClaudeCodeCollector', () => {
     expect(messages.length).toBe(0);
   });
 
-  it('should scan multiple project directories', async () => {
+  it("should scan multiple project directories", async () => {
     // Create two project directories
-    const project1 = path.join(tempDir, 'project-1');
-    const project2 = path.join(tempDir, 'project-2');
+    const project1 = path.join(tempDir, "project-1");
+    const project2 = path.join(tempDir, "project-2");
     await fs.mkdir(project1, { recursive: true });
     await fs.mkdir(project2, { recursive: true });
 
     // Add sessions to each
     await fs.writeFile(
-      path.join(project1, 'session-1.jsonl'),
-      '{"type":"user","message":{"role":"user","content":"Project 1"},"uuid":"p1-001","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"p1-session"}\n'
+      path.join(project1, "session-1.jsonl"),
+      '{"type":"user","message":{"role":"user","content":"Project 1"},"uuid":"p1-001","timestamp":"2024-01-01T10:00:00.000Z","sessionId":"p1-session"}\n',
     );
     await fs.writeFile(
-      path.join(project2, 'session-2.jsonl'),
-      '{"type":"user","message":{"role":"user","content":"Project 2"},"uuid":"p2-001","timestamp":"2024-01-01T11:00:00.000Z","sessionId":"p2-session"}\n'
+      path.join(project2, "session-2.jsonl"),
+      '{"type":"user","message":{"role":"user","content":"Project 2"},"uuid":"p2-001","timestamp":"2024-01-01T11:00:00.000Z","sessionId":"p2-session"}\n',
     );
 
     const messages = [];
@@ -197,7 +194,7 @@ describe('ClaudeCodeCollector', () => {
 
     expect(messages.length).toBe(2);
     const sessionIds = messages.map((m) => m.metadata?.session_id);
-    expect(sessionIds).toContain('p1-session');
-    expect(sessionIds).toContain('p2-session');
+    expect(sessionIds).toContain("p1-session");
+    expect(sessionIds).toContain("p2-session");
   });
 });

@@ -9,12 +9,12 @@
  * 5. Returns BlockResult (ok/failed) - never returns empty on failure
  */
 
-import type { ConversationBlock, BlockResult, RawMessage } from '../core/types.js';
-import { parseExtractionResult } from '../core/schemas.js';
-import type { LLMProvider, ChatMessage } from './providers/types.js';
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseExtractionResult } from "../core/schemas.js";
+import type { BlockResult, ConversationBlock, RawMessage } from "../core/types.js";
+import type { ChatMessage, LLMProvider } from "./providers/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -22,34 +22,50 @@ function extractJson(raw: string): string | null {
   // Strip leading/trailing whitespace and code fences
   let s = raw.trim();
   // Remove leading ```json or ``` (any number of backticks)
-  s = s.replace(/^`{3,}(?:json|JSON)?\s*\n?/, '');
+  s = s.replace(/^`{3,}(?:json|JSON)?\s*\n?/, "");
   // Remove trailing ```
-  s = s.replace(/\n?\s*`{3,}\s*$/, '');
+  s = s.replace(/\n?\s*`{3,}\s*$/, "");
   s = s.trim();
 
   // Try direct parse first
-  try { JSON.parse(s); return s; } catch {}
+  try {
+    JSON.parse(s);
+    return s;
+  } catch {}
 
   // Find the outermost { ... } or [ ... ] via bracket matching
-  const firstBrace = s.indexOf('{');
-  const firstBracket = s.indexOf('[');
-  const start = firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket) ? firstBrace : firstBracket;
+  const firstBrace = s.indexOf("{");
+  const firstBracket = s.indexOf("[");
+  const start =
+    firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket) ? firstBrace : firstBracket;
   if (start < 0) return null;
 
   const open = s[start];
-  const close = open === '{' ? '}' : ']';
+  const close = open === "{" ? "}" : "]";
   let depth = 0;
   let inString = false;
-  let escape = false;
+  let isEscaped = false;
 
   for (let i = start; i < s.length; i++) {
     const ch = s[i];
-    if (escape) { escape = false; continue; }
-    if (ch === '\\' && inString) { escape = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+    if (ch === "\\" && inString) {
+      isEscaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
     if (inString) continue;
     if (ch === open) depth++;
-    if (ch === close) { depth--; if (depth === 0) return s.slice(start, i + 1); }
+    if (ch === close) {
+      depth--;
+      if (depth === 0) return s.slice(start, i + 1);
+    }
   }
   return null;
 }
@@ -65,8 +81,8 @@ export interface SignalExtractor {
  * Load prompt template from file
  */
 function loadPrompt(filename: string): string {
-  const path = join(__dirname, 'prompts', filename);
-  return readFileSync(path, 'utf-8');
+  const path = join(__dirname, "prompts", filename);
+  return readFileSync(path, "utf-8");
 }
 
 /**
@@ -76,10 +92,10 @@ function formatConversation(messages: RawMessage[]): string {
   return messages
     .map((msg) => {
       const timestamp = new Date(msg.timestamp).toISOString();
-      const direction = msg.direction === 'sent' ? '→' : '←';
+      const direction = msg.direction === "sent" ? "→" : "←";
       return `[${timestamp}] ${direction} ${msg.contact}: ${msg.content}`;
     })
-    .join('\n');
+    .join("\n");
 }
 
 /**
@@ -88,15 +104,15 @@ function formatConversation(messages: RawMessage[]): string {
 function hashBlock(block: ConversationBlock): string {
   // Simple hash based on block metadata
   const data = `${block.platform}:${block.channel}:${block.block_id}:${block.start_time}`;
-  return Buffer.from(data).toString('base64').slice(0, 16);
+  return Buffer.from(data).toString("base64").slice(0, 16);
 }
 
 /**
  * Create a signal extractor with the given LLM provider
  */
 export function createSignalExtractor(provider: LLMProvider): SignalExtractor {
-  const systemPrompt = loadPrompt('system.md');
-  const signalExtractPrompt = loadPrompt('signal-extract.md');
+  const systemPrompt = loadPrompt("system.md");
+  const signalExtractPrompt = loadPrompt("signal-extract.md");
 
   return {
     async extract(block: ConversationBlock): Promise<BlockResult> {
@@ -110,9 +126,9 @@ export function createSignalExtractor(provider: LLMProvider): SignalExtractor {
 
 **Platform:** ${block.platform}
 **Channel:** ${block.channel}
-**Thread ID:** ${block.thread_id || 'N/A'}
+**Thread ID:** ${block.thread_id || "N/A"}
 **Time Range:** ${block.start_time} to ${block.end_time}
-**Participants:** ${block.participants.join(', ')}
+**Participants:** ${block.participants.join(", ")}
 
 ## Messages
 
@@ -128,21 +144,21 @@ Output ONLY valid JSON matching ExtractionResultSchema.`;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const messages: ChatMessage[] = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
           ];
 
           // If this is a retry, include error feedback
           if (attempt > 0 && lastError) {
             messages.push({
-              role: 'user',
+              role: "user",
               content: `The previous response had validation errors:\n${lastError}\n\nPlease fix the issues and provide valid JSON matching the schema.`,
             });
           }
 
           // Call LLM
           const response = await provider.chat(messages, {
-            responseFormat: 'json',
+            responseFormat: "json",
             temperature: 0.2,
             maxTokens: 8000,
           });
@@ -178,14 +194,14 @@ Output ONLY valid JSON matching ExtractionResultSchema.`;
             result.source.thread_id = block.thread_id;
           }
 
-          return { status: 'ok', data: result };
+          return { status: "ok", data: result };
         } catch (err) {
           // Capture validation error for retry
           lastError = err instanceof Error ? err.message : String(err);
           if (attempt === 1) {
             // Second attempt failed - give up
             return {
-              status: 'failed',
+              status: "failed",
               error: `Signal extraction validation failed after retry: ${lastError}`,
             };
           }
@@ -195,8 +211,8 @@ Output ONLY valid JSON matching ExtractionResultSchema.`;
 
       // Should not reach here, but handle it
       return {
-        status: 'failed',
-        error: `Signal extraction failed: ${lastError || 'unknown error'}`,
+        status: "failed",
+        error: `Signal extraction failed: ${lastError || "unknown error"}`,
       };
     },
   };

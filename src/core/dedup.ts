@@ -3,9 +3,9 @@
  * Checkpoints source identity and content hashes to detect new/modified/unchanged messages
  */
 
-import { createHash } from 'crypto';
-import { readFileSync, appendFileSync, existsSync } from 'fs';
-import type { RawMessage, DedupEntry } from './types';
+import { createHash } from "node:crypto";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import type { DedupEntry, RawMessage } from "./types";
 
 export class DedupStore {
   private entries: Map<string, string>; // source_hash → content_hash
@@ -23,8 +23,8 @@ export class DedupStore {
       return;
     }
 
-    const content = readFileSync(this.checkpointPath, 'utf-8');
-    const lines = content.split('\n').filter((line) => line.trim());
+    const content = readFileSync(this.checkpointPath, "utf-8");
+    const lines = content.split("\n").filter((line) => line.trim());
 
     for (const line of lines) {
       try {
@@ -67,7 +67,7 @@ export class DedupStore {
     }
 
     const composite = `${msg.platform}:${msg.channel}:${identityKey}:${msg.timestamp}`;
-    return createHash('sha256').update(composite).digest('hex');
+    return createHash("sha256").update(composite).digest("hex");
   }
 
   /**
@@ -75,10 +75,9 @@ export class DedupStore {
    * SHA-256(content:attachment_ids_joined_by_comma)
    */
   contentHash(msg: RawMessage): string {
-    const attachmentIds =
-      msg.attachments?.map((a) => a.id).join(',') || '';
+    const attachmentIds = msg.attachments?.map((a) => a.id).join(",") || "";
     const composite = `${msg.content}:${attachmentIds}`;
-    return createHash('sha256').update(composite).digest('hex');
+    return createHash("sha256").update(composite).digest("hex");
   }
 
   /**
@@ -87,18 +86,16 @@ export class DedupStore {
    * - unchanged: source_hash exists AND content_hash matches
    * - modified: source_hash exists AND content_hash differs
    */
-  check(msg: RawMessage): 'new' | 'unchanged' | 'modified' {
+  check(msg: RawMessage): "new" | "unchanged" | "modified" {
     const sourceHash = this.sourceIdentityHash(msg);
     const existingContentHash = this.entries.get(sourceHash);
 
     if (!existingContentHash) {
-      return 'new';
+      return "new";
     }
 
     const currentContentHash = this.contentHash(msg);
-    return currentContentHash === existingContentHash
-      ? 'unchanged'
-      : 'modified';
+    return currentContentHash === existingContentHash ? "unchanged" : "modified";
   }
 
   /**
@@ -121,6 +118,6 @@ export class DedupStore {
       return JSON.stringify(entry);
     });
 
-    appendFileSync(this.checkpointPath, lines.join('\n') + '\n', 'utf-8');
+    appendFileSync(this.checkpointPath, `${lines.join("\n")}\n`, "utf-8");
   }
 }

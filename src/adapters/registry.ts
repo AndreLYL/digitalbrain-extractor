@@ -1,7 +1,7 @@
-import type { Adapter } from '../core/types.js';
-import { FileAdapter } from './file.js';
-import { GBrainAdapter } from './gbrain.js';
-import { StdoutAdapter } from './stdout.js';
+import type { Adapter } from "../core/types.js";
+import { FileAdapter } from "./file.js";
+import { GBrainAdapter } from "./gbrain.js";
+import { StdoutAdapter } from "./stdout.js";
 
 export interface AdapterRegistry {
   register(adapter: Adapter): void;
