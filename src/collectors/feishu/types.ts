@@ -21,6 +21,14 @@ export interface FeishuTaskSourceConfig {
   enabled: boolean;
 }
 
+export interface FeishuDMSourceConfig {
+  enabled: boolean;
+  dm_chat_ids: string[];
+  self_open_id: string;
+  lookback_days?: number;
+  overlap_ms?: number;
+}
+
 export interface FeishuCollectorConfig {
   app_id: string;
   app_secret: string;
@@ -31,6 +39,7 @@ export interface FeishuCollectorConfig {
     calendar?: FeishuCalendarSourceConfig;
     docs?: FeishuDocSourceConfig;
     tasks?: FeishuTaskSourceConfig;
+    dm?: FeishuDMSourceConfig;
   };
 }
 

@@ -204,4 +204,21 @@ describe("FeishuCollector", () => {
     expect(collector.description).toContain("docs");
     expect(collector.description).toContain("tasks");
   });
+
+  it("wires dm source when enabled", () => {
+    const config: FeishuCollectorConfig = {
+      ...baseConfig,
+      sources: {
+        ...baseConfig.sources,
+        dm: {
+          enabled: true,
+          dm_chat_ids: ["oc_dm_001"],
+          self_open_id: "ou_self_001",
+        },
+      },
+    };
+    const collector = createFeishuCollector(config);
+    const sourceNames = (collector as any).sources.map((s: any) => s.name);
+    expect(sourceNames).toContain("dm");
+  });
 });

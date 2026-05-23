@@ -8,12 +8,13 @@ import type { FeishuSource } from "./sources/base";
 import { MessageSource } from "./sources/messages";
 import { DocSource } from "./sources/docs";
 import { TaskSource } from "./sources/tasks";
+import { DMSource } from "./sources/dm";
 import type { FeishuCheckpoint, FeishuCollectorConfig } from "./types";
 
 export class FeishuCollector implements Collector, CursorProvider {
   readonly id = "feishu";
   readonly name = "Feishu";
-  readonly description = "Feishu Open API collector (messages, calendar, docs, tasks)";
+  readonly description = "Feishu Open API collector (messages, calendar, docs, tasks, dm)";
 
   private readonly auth: FeishuAuthManager;
   private readonly client: FeishuHttpClient;
@@ -51,6 +52,16 @@ export class FeishuCollector implements Collector, CursorProvider {
 
     if (config.sources.tasks?.enabled) {
       this.sources.push(new TaskSource(this.client));
+    }
+
+    if (config.sources.dm?.enabled) {
+      this.sources.push(
+        new DMSource(this.client, config.sources.dm.dm_chat_ids, {
+          lookbackDays: config.sources.dm.lookback_days ?? 30,
+          selfOpenId: config.sources.dm.self_open_id,
+          overlapMs: config.sources.dm.overlap_ms,
+        }),
+      );
     }
   }
 
