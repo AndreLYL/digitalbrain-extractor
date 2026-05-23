@@ -163,4 +163,45 @@ describe("FeishuCollector", () => {
     expect(sourceNames).not.toContain("messages");
     expect(sourceNames).toContain("calendar");
   });
+
+  it("wires docs and tasks sources when enabled", () => {
+    const config: FeishuCollectorConfig = {
+      ...baseConfig,
+      sources: {
+        ...baseConfig.sources,
+        docs: {
+          enabled: true,
+          doc_folders: ["folder_001"],
+        },
+        tasks: {
+          enabled: true,
+        },
+      },
+    };
+    const collector = createFeishuCollector(config);
+    const sourceNames = (collector as any).sources.map((s: any) => s.name);
+    expect(sourceNames).toContain("docs");
+    expect(sourceNames).toContain("tasks");
+  });
+
+  it("skips disabled docs/tasks sources", () => {
+    const config: FeishuCollectorConfig = {
+      ...baseConfig,
+      sources: {
+        ...baseConfig.sources,
+        docs: { enabled: false, doc_folders: [] },
+        tasks: { enabled: false },
+      },
+    };
+    const collector = createFeishuCollector(config);
+    const sourceNames = (collector as any).sources.map((s: any) => s.name);
+    expect(sourceNames).not.toContain("docs");
+    expect(sourceNames).not.toContain("tasks");
+  });
+
+  it("updated description includes docs and tasks", () => {
+    const collector = createFeishuCollector(baseConfig);
+    expect(collector.description).toContain("docs");
+    expect(collector.description).toContain("tasks");
+  });
 });
