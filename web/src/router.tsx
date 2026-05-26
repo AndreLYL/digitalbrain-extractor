@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Shell } from "./components/layout/shell";
 import { Dashboard } from "./pages/dashboard";
+import { PageList } from "./pages/page-list";
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -16,7 +17,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: "graph", element: <Placeholder title="Knowledge Graph" /> },
-      { path: "pages", element: <Placeholder title="Pages" /> },
+      { path: "pages", element: <PageList /> },
       { path: "pages/*", element: <Placeholder title="Page Detail" /> },
       { path: "search", element: <Placeholder title="Search" /> },
     ],
