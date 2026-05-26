@@ -7,6 +7,8 @@ import { ContentTab } from "../components/page/content-tab";
 import { ChunksTab } from "../components/page/chunks-tab";
 import { LinksTab } from "../components/page/links-tab";
 import { useLinks, useBacklinks } from "../hooks/use-links";
+import { TimelineTab } from "../components/page/timeline-tab";
+import { useTimeline } from "../hooks/use-timeline";
 
 const TABS = ["Content", "Chunks", "Links", "Timeline"] as const;
 type Tab = (typeof TABS)[number];
@@ -31,6 +33,7 @@ export function PageDetail() {
   const { data: chunks } = useChunks(slug);
   const { data: outLinks } = useLinks(slug);
   const { data: backLinks } = useBacklinks(slug);
+  const { data: timeline } = useTimeline(slug);
   const [activeTab, setActiveTab] = useState<Tab>("Content");
 
   if (isLoading) return <div className="flex items-center justify-center min-h-[60vh] text-muted">Loading...</div>;
@@ -52,6 +55,7 @@ export function PageDetail() {
   const tabCounts: Record<string, string> = {
     Chunks: chunks ? `${chunks.length}` : "",
     Links: outLinks || backLinks ? `${outLinks?.length ?? 0}↗ ${backLinks?.length ?? 0}↙` : "",
+    Timeline: timeline ? `${timeline.length}` : "",
   };
 
   return (
@@ -97,7 +101,7 @@ export function PageDetail() {
       {activeTab === "Content" && <ContentTab compiledTruth={bodyContent} frontmatter={frontmatter} />}
       {activeTab === "Chunks" && chunks && <ChunksTab chunks={chunks} />}
       {activeTab === "Links" && <LinksTab outgoing={outLinks ?? []} incoming={backLinks ?? []} />}
-      {activeTab === "Timeline" && <div className="text-muted">Timeline tab — next task</div>}
+      {activeTab === "Timeline" && <TimelineTab entries={timeline ?? []} />}
     </div>
   );
 }
