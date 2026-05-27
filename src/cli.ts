@@ -48,7 +48,10 @@ function bootstrapCollectors(sources: SourcesConfig): void {
 }
 
 async function createStores(config: ReturnType<typeof loadConfig>) {
-  const db = await Database.create(config.store.data_dir);
+  const { mkdirSync } = await import("node:fs");
+  const dataDir = config.store.data_dir.replace(/^~/, process.env.HOME ?? "~");
+  mkdirSync(resolve(dataDir), { recursive: true });
+  const db = await Database.create(dataDir);
   const pages = new PageStore(db.pg);
   const chunks = new ChunkStore(db.pg);
   const embedding = new EmbeddingService(db.pg, {
