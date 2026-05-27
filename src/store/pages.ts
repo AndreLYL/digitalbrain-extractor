@@ -21,6 +21,18 @@ interface ParsedContent {
   frontmatter: Record<string, unknown>;
 }
 
+interface PageRow {
+  id: number;
+  slug: string;
+  type: string;
+  title: string;
+  compiled_truth: string;
+  frontmatter: Record<string, unknown> | string;
+  content_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
 function parseMarkdownWithFrontmatter(content: string): ParsedContent {
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!fmMatch) {
@@ -43,7 +55,7 @@ export class PageStore {
     const { title, type, compiled_truth, frontmatter } = parseMarkdownWithFrontmatter(content);
     const contentHash = createHash("sha256").update(content).digest("hex");
 
-    const result = await this.pg.query(
+    const result = await this.pg.query<PageRow>(
       `INSERT INTO pages (slug, type, title, compiled_truth, frontmatter, content_hash)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (slug) DO UPDATE SET
@@ -60,7 +72,7 @@ export class PageStore {
   }
 
   async getPage(slug: string): Promise<Page | null> {
-    const result = await this.pg.query("SELECT * FROM pages WHERE slug = $1", [slug]);
+    const result = await this.pg.query<PageRow>("SELECT * FROM pages WHERE slug = $1", [slug]);
     return result.rows.length > 0 ? this.rowToPage(result.rows[0]) : null;
   }
 
@@ -68,12 +80,7 @@ export class PageStore {
     await this.pg.query("DELETE FROM pages WHERE slug = $1", [slug]);
   }
 
-  async listPages(opts?: {
-    type?: string;
-    limit?: number;
-    sort?: string;
-    order?: string;
-  }): Promise<Page[]> {
+  async listPages(opts?: { type?: string; limit?: number }): Promise<Page[]> {
     let sql = "SELECT * FROM pages";
     const params: unknown[] = [];
     const conditions: string[] = [];
@@ -85,27 +92,16 @@ export class PageStore {
     if (conditions.length > 0) {
       sql += ` WHERE ${conditions.join(" AND ")}`;
     }
-
-    const validSorts = ["updated_at", "created_at", "title"];
-    const sortCol = validSorts.includes(opts?.sort ?? "") ? opts!.sort! : "updated_at";
-    const order = opts?.order === "asc" ? "ASC" : "DESC";
-    sql += ` ORDER BY ${sortCol} ${order}`;
-
-    // limit=0 means no limit; undefined/negative → default 50; cap at 200
-    const rawLimit = opts?.limit;
-    if (rawLimit === 0) {
-      // no LIMIT clause — return all
-    } else {
-      const limit = (rawLimit && rawLimit > 0) ? Math.min(rawLimit, 200) : 50;
+    sql += " ORDER BY updated_at DESC";
+    if (opts?.limit) {
       sql += ` LIMIT $${params.length + 1}`;
-      params.push(limit);
+      params.push(opts.limit);
     }
-
-    const result = await this.pg.query(sql, params);
-    return result.rows.map((r: any) => this.rowToPage(r));
+    const result = await this.pg.query<PageRow>(sql, params);
+    return result.rows.map((r) => this.rowToPage(r));
   }
 
-  private rowToPage(row: any): Page {
+  private rowToPage(row: PageRow): Page {
     return {
       id: row.id,
       slug: row.slug,
