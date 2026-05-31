@@ -46,10 +46,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: |
-          timeout 300 bun run test --reporter=verbose
-          STATUS=$?
-          if [ $STATUS -eq 124 ]; then
-            echo "::warning::vitest hung after tests completed — forced exit"
-            exit 0
-          fi
-          exit $STATUS
+          timeout 300 bun run test --reporter=verbose || STATUS=$?
+          if [ "${STATUS:-0}" -eq 124 ]; then echo "::warning::vitest hung after completion — forced exit"; exit 0; fi
+          exit "${STATUS:-0}"
